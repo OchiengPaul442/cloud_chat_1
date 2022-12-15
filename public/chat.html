@@ -41,7 +41,7 @@
               <ul class="dropdown-menu text-center" aria-labelledby="dropdownMenuButton1">
                 <li>
                   <a style="background: antiquewhite;" class="dropdown-item text-capitalize" id="current_user">
-                    
+
                   </a>
                 </li>
                 <!-- logout form -->
@@ -98,7 +98,12 @@
                     </button>
 
                     <ul class="dropdown-menu text-center">
-                      <li class="dropdown-item">connect server</li>
+                      <li class="dropdown-item">
+                        <a type="button" class="btn btn-primary" data-bs-toggle="modal"
+                          data-bs-target="#connect_to_server">
+                          connect to user
+                        </a>
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -108,7 +113,7 @@
             <!-- chat content -->
             <div class="position-relative">
               <div class="chat-messages p-4">
-           
+
               </div>
             </div>
             <!-- end of chat content -->
@@ -131,7 +136,7 @@
   </main>
   <!-- end of main content -->
 
-  <!-- Modal -->
+  <!-- logout Modal -->
   <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -149,7 +154,38 @@
       </div>
     </div>
   </div>
-  <!-- end of modal -->
+  <!-- end of logout modal -->
+
+  <!-- connect to server Modal -->
+  <div class="modal fade" id="connect_to_server" tabindex="-1" aria-labelledby="connecttoserverlabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="connecttoserverlabel">Enter connection port:</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form action="">
+          <div class="modal-body">
+            <div class="input-group flex-nowrap">
+              <span class="input-group-text" id="addon-wrapping">Port:</span>
+              <input type="text" class="form-control" placeholder="....." aria-label="Username"
+                aria-describedby="addon-wrapping">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">No</button>
+            <button type="button" class="btn btn-success">Connect</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- end of connect to server modal -->
+
+  <!-- notification Modal -->
+  <div class="notification"></div>
+  <!-- end of notification modal -->
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.9.2/qs.min.js"
     integrity="sha256-TDxXjkAUay70ae/QJBEpGKkpVslXaHHayklIVglFRT4=" crossorigin="anonymous"></script>

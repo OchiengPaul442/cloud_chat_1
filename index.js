@@ -33,7 +33,7 @@ io.on('connection', socket => {
       .to(user.room)
       .emit(
         'message',
-        formatMessage("CloudChat", `${user.username} has joined the room`)
+        formatMessage("CloudChat_join", `${user.username} has joined the room`)
       );
 
     // Current active users and room name
@@ -58,7 +58,7 @@ io.on('connection', socket => {
     if (user) {
       io.to(user.room).emit(
         'message',
-        formatMessage("WebCage", `${user.username} has left the room`)
+        formatMessage("cloudchat_left", `${user.username} has left the room`)
       );
 
       // Current active users and room name

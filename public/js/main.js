@@ -54,25 +54,47 @@ chatForm.addEventListener("submit", (e) => {
 
 // Output message to DOM
 function outputMessage(message) {
-  const div = document.createElement("div");
+  if (message.username === "CloudChat") {
+    // show notification modal for 3 seconds
+    const div = document.createElement("div");
+    div.innerHTML = `<div class="text-center alert alert-info alert-dismissible fade show" role="alert">
+                       ${message.text}                    
+                    </div>`;
+    document.querySelector(".notification").appendChild(div);
+    setTimeout(
+      () => document.querySelector(".notification").removeChild(div),
+      3000
+    );
+  } else if (message.username === "CloudChat_join") {
+    // show notification modal for 3 seconds
+    const div = document.createElement("div");
+    div.innerHTML = `<div class="text-center alert alert-success alert-dismissible fade show" role="alert">
+                       ${message.text}                    
+                    </div>`;
+    document.querySelector(".notification").appendChild(div);
+    setTimeout(
+      () => document.querySelector(".notification").removeChild(div),
+      3000
+    );
+  } else if (message.username === "cloudchat_left") {
+    // show notification modal for 3 seconds
+    const div = document.createElement("div");
+    div.innerHTML = `<div class="text-center alert alert-danger alert-dismissible fade show" role="alert">
+                       ${message.text}                    
+                    </div>`;
+    document.querySelector(".notification").appendChild(div);
+    setTimeout(
+      () => document.querySelector(".notification").removeChild(div),
+      3000
+    );
+  } else {
+    const div = document.createElement("div");
 
-  // div.classList.add("message");
-  // const p = document.createElement("p");
-  // p.classList.add("meta");
-  // p.innerText = message.username;
-  // p.innerHTML += `<span>${message.time}</span>`;
-  // div.appendChild(p);
-  // const para = document.createElement("p");
-  // para.classList.add("text");
-  // para.innerText = message.text;
-  // div.appendChild(para);
-  // document.querySelector(".chat-messages").appendChild(div);
+    // get random numbers for profile pics between 1 and 5
+    const randomNum = Math.floor(Math.random() * 5) + 1;
 
-  // get random numbers for profile pics between 1 and 5
-  const randomNum = Math.floor(Math.random() * 5) + 1;
-
-  if (message.username === current_user.innerText) {
-    div.innerHTML = `<div class="chat-message-right mb-4">
+    if (message.username === current_user.innerText) {
+      div.innerHTML = `<div class="chat-message-right mb-4">
                       <div>
                           <img src="./imgs/profile${randomNum}.jpg" class="rounded-circle mr-1" alt="Chris Wood"
                               width="40" height="40">
@@ -83,8 +105,8 @@ function outputMessage(message) {
                           ${message.text}
                       </div>
                     </div>`;
-  } else {
-    div.innerHTML = `<div class="chat-message-left pb-4">
+    } else {
+      div.innerHTML = `<div class="chat-message-left pb-4">
                         <div>
                             <img src="./imgs/profile${randomNum}.jpg" class="rounded-circle mr-1" alt="Sharon Lessman"
                                 width="40" height="40">
@@ -96,9 +118,9 @@ function outputMessage(message) {
                             ${message.text}
                         </div>
                     </div>`;
+    }
+    document.querySelector(".chat-messages").appendChild(div);
   }
-
-  document.querySelector(".chat-messages").appendChild(div);
 }
 
 // Add room name to DOM
@@ -114,10 +136,6 @@ function outputUsers(users) {
   current_user.innerHTML = username;
 
   users.forEach((user) => {
-    // const li = document.createElement('li');
-    // li.innerText = user.username;
-    // userList.appendChild(li);
-
     // get random numbers for profile pics between 1 and 5
 
     const li = document.createElement("li");
@@ -127,7 +145,7 @@ function outputUsers(users) {
       li.innerHTML = `<div class="alert alert-secondary text-center" role="alert">No Online Users</div>
       `;
     } // dont display the current user in the user list
-    else if (user.username === username) {      
+    else if (user.username === username) {
       return;
     } else {
       li.innerHTML = `<a class="start_chat list-group item list-group-item-action border-0">
@@ -150,10 +168,5 @@ function outputUsers(users) {
 
 //Prompt the user before leave chat room
 document.getElementById("leave-btn").addEventListener("click", () => {
-  // const leaveRoom = confirm('Are you sure you want to leave the chatroom?');
-  // if (leaveRoom) {
-  // window.location = '../index.html';
-  // } else {
-  // }
   window.location = "../index.html";
 });

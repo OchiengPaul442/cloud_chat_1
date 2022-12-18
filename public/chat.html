@@ -13,8 +13,8 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
     crossorigin="anonymous"></script>
-  <script src="https://code.jquery.com/jquery-3.6.1.min.js"
-    integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.6.2.min.js"
+    integrity="sha256-2krYZKh//PcchRtd+H+VyyQoZ/e3EcrkxhM8ycwASPA=" crossorigin="anonymous"></script>
   <!-- favicon -->
   <link rel="icon" href="./imgs/Logo.png" type="image/x-icon">
   <!-- custome css -->
@@ -36,12 +36,11 @@
             <div class="dropdown">
               <button class="btn bg-none dropdown-toggle" style="outline: none;border:none;" type="button"
                 id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="./imgs/profile2.jpg" class="rounded-circle" width="40px" height="40px" alt="Profile">
+                <img id="profile_image_user" class="rounded-circle" width="40px" height="40px" alt="Profile">
               </button>
               <ul class="dropdown-menu text-center" aria-labelledby="dropdownMenuButton1">
                 <li>
                   <a style="background: antiquewhite;" class="dropdown-item text-capitalize" id="current_user">
-
                   </a>
                 </li>
                 <!-- logout form -->
@@ -68,7 +67,9 @@
             <div class="px-4 d-none d-md-block">
               <div class="d-flex align-items-center">
                 <div class="flex-grow-1">
-                  <input type="text" class="form-control my-1" placeholder="Search...">
+                  <form action="">
+                    <input type="text" class="form-control my-1" placeholder="Search..." id="search_field">
+                  </form>
                 </div>
               </div>
             </div>
@@ -112,8 +113,7 @@
             <!-- End Header section -->
             <!-- chat content -->
             <div class="position-relative">
-              <div class="chat-messages p-4">
-
+              <div class="chat-messages">
               </div>
             </div>
             <!-- end of chat content -->
@@ -190,7 +190,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.9.2/qs.min.js"
     integrity="sha256-TDxXjkAUay70ae/QJBEpGKkpVslXaHHayklIVglFRT4=" crossorigin="anonymous"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/main.js"></script>
+  <script src="./js/main.js"></script>
+  <script src="./js/search.js"></script>
+
 </body>
 
 </html>

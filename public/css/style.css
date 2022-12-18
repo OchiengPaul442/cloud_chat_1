@@ -29,14 +29,14 @@ a {
   text-decoration: none;
 }
 
-.btn {
+/* .btn {
   cursor: pointer;
   padding: 5px 15px;
   color: var(--dark-color-a);
   border: 0;
   font-size: 17px;
   border-radius: 4px;
-}
+} */
 
 /* Chat Page */
 
@@ -102,7 +102,7 @@ a {
 }
 
 .chat-messages {
-  padding: 30px;
+  padding: 55px;
   height: 600px;
   max-height: 600px;
   overflow-y: scroll;
@@ -155,7 +155,7 @@ a {
 }
 
 /* notification modals */
-.notification {
+.notification,.notification_alerts {
  /* center the div at top */
   position: fixed;
   top: 0;

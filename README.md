@@ -72,20 +72,17 @@
         </ul>
     </span>
     <p>then navigate to http://localhost:3000 in any browser to view the application.</p>
-    ![image](https://user-images.githubusercontent.com/97807374/208265846-5b25633c-7b48-4dde-b9d2-a0cafed74f0d.png)
     <p>In the login screen, you can either sign up to create your login information or use the existing testing login
         information:</p>
     <ul>
         <li>Username: guest</li>
         <li>Password: guest</li>
     </ul>
-    ![image](https://user-images.githubusercontent.com/97807374/208265660-79e22ee5-e920-4cc2-953c-d22e5abf70b9.png)
     <p>This is the signup screen, fill in all the information and your account will be created! Users will be able to
         chat with different people who are also logged into the same chat room and their chats will be confidential to
         only the users in a specific chat room.</p>
-    ![image](https://user-images.githubusercontent.com/97807374/208265669-2538682c-6a3b-4af1-9b2e-89c1196e5e50.png)
     <strong>
-        <h1>SQL DUMP:</h1>
+        <h1>SQL DUMP</h1>
     </strong>
     <p>An SQL dump is a file that contains a record of the table structure and the data from a database. It can be used
         to create a backup of the database or to transfer the data to a different database.</p>
@@ -96,9 +93,15 @@
         <li>The sql command to create a user_details table</li>
         <li>Also show the setting of the primary key in each of the the created tables</li>
     </ul>
-    ![image](https://user-images.githubusercontent.com/97807374/208265677-fa4c5d05-4f41-422d-afa4-8f948fbc3473.png)
-    ![image](https://user-images.githubusercontent.com/97807374/208265686-9fdd7cd2-e139-46f7-be86-844b0da89976.png)
-    ![image](https://user-images.githubusercontent.com/97807374/208265690-f948ed39-02e0-41c0-8aff-4cd514332318.png)
 </body>
 
 </html>
+ <strong>
+        <h1>PREVIEW</h1>
+    </strong>
+
+    ![image](https://user-images.githubusercontent.com/97807374/208265846-5b25633c-7b48-4dde-b9d2-a0cafed74f0d.png)
+    
+    ![image](https://user-images.githubusercontent.com/97807374/208265660-79e22ee5-e920-4cc2-953c-d22e5abf70b9.png)
+    
+    ![image](https://user-images.githubusercontent.com/97807374/208265669-2538682c-6a3b-4af1-9b2e-89c1196e5e50.png)

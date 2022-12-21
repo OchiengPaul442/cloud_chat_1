@@ -97,11 +97,13 @@
 
 </html>
  <strong>
-        <h1>PREVIEW</h1>
-    </strong>
+     <h1>PREVIEW</h1>
+</strong>
 
-    ![image](https://user-images.githubusercontent.com/97807374/208265846-5b25633c-7b48-4dde-b9d2-a0cafed74f0d.png)
-    
-    ![image](https://user-images.githubusercontent.com/97807374/208265660-79e22ee5-e920-4cc2-953c-d22e5abf70b9.png)
-    
-    ![image](https://user-images.githubusercontent.com/97807374/208265669-2538682c-6a3b-4af1-9b2e-89c1196e5e50.png)
+![Screenshot_20221219_013502](https://user-images.githubusercontent.com/97807374/208871280-8b61b16c-d5be-4855-98c9-a9266663ff80.png)
+
+![image](https://user-images.githubusercontent.com/97807374/208873526-55758470-00ce-4ecf-8df8-4a37e3cfbecc.png)
+
+
+![image](https://user-images.githubusercontent.com/97807374/208873095-9c81ea46-0bc1-42db-8313-020c0f507176.png)
+

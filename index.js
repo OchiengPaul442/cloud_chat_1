@@ -10,6 +10,12 @@ const server = http.createServer(app);
 const io = socketio(server);
 const csp = require("content-security-policy");
 const session = require("express-session");
+const CryptoJS = require("crypto-js");
+const crypto = require("crypto");
+
+// secret key for encryption
+const secretKey = "secret key 123456789";
+const secretKey_2 = crypto.randomBytes(32).toString("hex");
 
 // content security policy header
 const cspPolicy = csp.getCSP({
@@ -50,25 +56,30 @@ app.use(express.static(path.join(__dirname, "public")));
 // This will apply this policy to all requests if no local policy is set
 app.use(cspPolicy);
 
-// handle sessions
-const sessionMiddleware = session({
-  secret: "secret",
-  resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: 60000 },
-});
+// ********************************************************************************* //
+// SESSION MIDDLEWARE
+// ********************************************************************************* //
+// session middleware
+app.use(
+  session({
+    secret: "my-secret", // used to sign the session ID cookie
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
 
-app.use(sessionMiddleware);
-
-// convert a connect middleware to a Socket.IO middleware
-const wrap = (middleware) => (socket, next) =>
-  middleware(socket.request, {}, next);
-
-io.use(wrap(sessionMiddleware));
-
-// api middleware
+// ********************************************************************************* //
+// API Middleware
+// ********************************************************************************* //
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// ********************************************************************************* //
+// connection to mysql database
+// ********************************************************************************* //
 
 // define database connection
 const db = mysql.createConnection({
@@ -86,7 +97,9 @@ db.connect((err) => {
   console.log("MySQL Connected...");
 });
 
+// ********************************************************************************* //
 // define routes
+// ********************************************************************************* //
 // index page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname + "/public/index.html"));
@@ -102,6 +115,23 @@ app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname + "/public/register.html"));
 });
 
+// logout
+app.get("/logout", (req, res) => {
+  // set user_status to offline
+  let stats = 0;
+  let sql_ = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${req.session.user_name}'`;
+  db.query(sql_, (err, result) => {
+    if (err) throw err;
+    // destroy session
+    req.session.destroy();
+    // redirect to index page
+    res.redirect("/");
+  });
+});
+
+// ********************************************************************************* //
+//AUTHENTICATIONS
+// ********************************************************************************* //
 // register user
 app.get("/registerForm", (req, res) => {
   // get username, email and password from form
@@ -134,6 +164,11 @@ app.get("/registerForm", (req, res) => {
             "/register?msg=password must contain special characters"
           );
         } else {
+          // prevent sql injection
+          user_name = user_name.replace(/'/g, "\\'");
+          user_email = user_email.replace(/'/g, "\\'");
+          user_password = user_password.replace(/'/g, "\\'");
+
           // hash user_password before storing in database
           let saltRounds = 10;
           let myPlaintextPassword = user_password;
@@ -160,6 +195,10 @@ app.get("/loginForm", (req, res) => {
   let user_password = req.query.password;
   let room = req.query.room;
 
+  // prevent sql injection
+  user_name = user_name.replace(/'/g, "\\'");
+  user_password = user_password.replace(/'/g, "\\'");
+
   // check if user exists
   let sql_ = `SELECT * FROM users_details WHERE user_email like '${user_name}' or user_name like '${user_name}'`;
   db.query(sql_, (err, result) => {
@@ -174,16 +213,23 @@ app.get("/loginForm", (req, res) => {
         if (user) {
           exitRoom(user);
         } else {
-          // set session
-          // check if session exists
-          if (!req.session) {
-            // redirect to index page
-            res.redirect("/");
+          // set session variables
+          req.session.user_name = user_name;
+          req.session.id = result[0].id;
+
+          // if user status is 0 then proceed else redirect to index page
+          if (result[0].user_status == 0) {
+            let stats = 1;
+            let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${user_name}'`;
+            db.query(statusUpdate, (err, result_) => {
+              if (err) throw err;
+              // redirect to chat page
+              res.redirect(
+                `/chat?username=${user_name}&room=${room}&image=${result[0].profile_img}`
+              );
+            });
           } else {
-            req.session.authenticated = true;
-            res.redirect(
-              `/chat?username=${user_name}&room=${room}&image=${result[0].profile_img}`
-            );
+            res.redirect("/?loginerror= user already logged in");
           }
         }
       } else {
@@ -195,7 +241,9 @@ app.get("/loginForm", (req, res) => {
   });
 });
 
-// this block will run when the client connects
+// ********************************************************************************* //
+// THIS BLOCK RUNS WHEN USER CONNECTS TO SOCKET
+// ********************************************************************************* //
 io.on("connection", (socket) => {
   socket.on("joinRoom", ({ username, room }) => {
     const user = newUser(socket.id, username, room);
@@ -212,7 +260,12 @@ io.on("connection", (socket) => {
     let sql = `SELECT * FROM messages WHERE chat_room = '${user.room}'`;
     db.query(sql, (err, result) => {
       if (err) throw err;
-      socket.emit("displayHistory", result);
+      // decrypt the message
+      for (let i = 0; i < result.length; i++) {
+        const decrypted = CryptoJS.AES.decrypt(result[i].message, secretKey);
+        result[i].message = decrypted.toString(CryptoJS.enc.Utf8);
+      }
+      socket.emit("chatHistory", result);
     });
 
     // Broadcast everytime users connects
@@ -231,28 +284,31 @@ io.on("connection", (socket) => {
   });
 
   // Listen for client message
-  socket.on("chatMessage", ({msg,image}) => {
+  socket.on("chatMessage", ({ msg, image }) => {
     const user = getActiveUser(socket.id);
 
-    io.to(user.room).emit("message", formatMessage(user.username, msg));
+    // prevent sql injection
+    msg = msg.replace(/'/g, "''");
+    image = image.replace(/'/g, "''");
+
+    // select user profile image
+    let sql_ = `SELECT profile_img FROM users_details WHERE user_name = '${user.username}'`;
+    db.query (sql_, (err , result) => {
+      if (err) throw err;
+      image = result[0].profile_img;
+      io.to(user.room).emit("message", formatMessage(user.username, msg, image));
+    });
+
+
+    // Encrypt the message
+    let encrypted = CryptoJS.AES.encrypt(msg, secretKey).toString();
 
     // save message to database with user id
-    let sql = `INSERT INTO messages (user_id, message, chat_room,images) VALUES ('${user.username}', '${msg}', '${user.room}','${image}')`;
+    let sql = `INSERT INTO messages (user_id, message, chat_room,images) VALUES ('${user.username}', '${encrypted}', '${user.room}','${image}')`;
     db.query(sql, (err) => {
       if (err) throw err;
       // console.log(result);
     });
-  });
-
-  // destroy session when user logs out
-  socket.on("logout", (data) => {
-    // check if its the same user
-    if (data.username == socket.request.session.username) {
-      // destroy session
-      socket.request.session.destroy();
-    } else {
-      console.log("error");
-    }
   });
 
   // Runs when client disconnects
@@ -274,6 +330,10 @@ io.on("connection", (socket) => {
   });
 });
 
+// ********************************************************************************* //
+// PORT TO RUN SERVER
+// ********************************************************************************* //
 const PORT = process.env.PORT || 3000;
-
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// https://socket.io/docs/v3/client-initialization/

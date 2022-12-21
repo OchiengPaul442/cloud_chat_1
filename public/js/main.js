@@ -1,9 +1,9 @@
 const chatForm = document.getElementById("chat-form");
-const register = document.getElementById("registerForm_2");
 const chatMessages = document.querySelector(".chat-messages");
 const roomName = document.getElementById("room-name");
 const userList = document.getElementById("users");
 const current_user = document.getElementById("current_user");
+const connectPort = document.getElementById("connect_port");
 
 // Get username and room from URL
 const { username, room, image } = Qs.parse(location.search, {
@@ -28,55 +28,30 @@ socket.on("message", (message) => {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-// history from server
-socket.on("displayHistory", (history) => {
-  history.forEach((data) => {
-    const div = document.createElement("div");
+// chat history from server
+socket.on("chatHistory", (history) => {
+  outputHistoryMessages(history);
+});
 
-    // check if history is for current chat room
-    if (data.chat_room === room) {
-      //  get actual time in 12 hour format with AM/PM
-      let time_in_Hours = new Date(data.time_stamp).toLocaleString("en-US", {
-        hour: "numeric",
-        minute: "numeric",
-        hour12: true,
-      });
+// port submit
+connectPort.addEventListener("submit", (e) => {
+  e.preventDefault();
 
-      // check if message is from current user
-      if (data.user_id === current_user.innerText) {
-        div.innerHTML = `<div class="chat-message-right mb-4">
-                        <div>
-                            <img src="./imgs/${data.images}" class="rounded-circle mr-1" alt="Chris Wood"
-                                width="40" height="40">
-                            <div class="text-muted small text-nowrap mt-2">${time_in_Hours}</div>
-                        </div>
-                        <div class="flex-shrink-1 rounded py-2 px-3 mr-3" style="background: #d6eaea;">
-                            <div class="font-weight-bold mb-1">${data.user_id}</div>
-                            ${data.message}
-                        </div>
-                      </div>`;
-      } else {
-        div.innerHTML = `<div class="chat-message-left pb-4">
-                        <div>
-                            <img src="./imgs/${data.images}" class="rounded-circle mr-1" alt="Sharon Lessman"
-                                width="40" height="40">
-                            <div class="text-muted small text-nowrap mt-2">${time_in_Hours}</div>
-                        </div>
-                        <div class="flex-shrink-1 rounded py-2 px-3 ml-3"style="background: #eeddc4e3;
-                      }">
-                            <div class="font-weight-bold mb-1">${data.user_id}</div>
-                            ${data.message}
-                        </div>
-                    </div>`;
-      }
-    } else {
-      div.innerHTML = `<div class="text-center alert alert-info alert-dismissible fade show" role="alert">
-                        ${data.message}
-                      </div>`;
-    }
+  // Get port number
+  let port = e.target.elements.port.value;
 
-    document.querySelector(".chat-messages").appendChild(div);
-  });
+  port = port.trim();
+
+  if (!port) {
+    return false;
+  }
+
+  // Emit port to server
+  // socket.emit("port", { port });
+
+  // Clear input
+  e.target.elements.port.value = "";
+  e.target.elements.port.focus();
 });
 
 // Message submit
@@ -93,7 +68,7 @@ chatForm.addEventListener("submit", (e) => {
   }
 
   // Emit message to server
-  socket.emit("chatMessage", {msg, image});
+  socket.emit("chatMessage", { msg, image });
 
   // Clear input
   e.target.elements.msg.value = "";
@@ -141,7 +116,7 @@ function outputMessage(message) {
     if (message.username === current_user.innerText) {
       div.innerHTML = `<div class="chat-message-right mb-4">
                       <div>
-                          <img src="./imgs/${image}" class="rounded-circle mr-1" alt="Chris Wood"
+                          <img src="./imgs/${message.image}" class="rounded-circle mr-1" alt="Chris Wood"
                               width="40" height="40">
                           <div class="text-muted small text-nowrap mt-2">${message.time}</div>
                       </div>
@@ -153,12 +128,11 @@ function outputMessage(message) {
     } else {
       div.innerHTML = `<div class="chat-message-left pb-4">
                         <div>
-                            <img src="./imgs/${image}" class="rounded-circle mr-1" alt="Sharon Lessman"
+                            <img src="./imgs/${message.image}" class="rounded-circle mr-1" alt="Sharon Lessman"
                                 width="40" height="40">
                             <div class="text-muted small text-nowrap mt-2">${message.time}</div>
                         </div>
-                        <div class="flex-shrink-1 rounded py-2 px-3 ml-3"style="background: #eeddc4e3;
-                      }">
+                        <div class="flex-shrink-1 rounded py-2 px-3 ml-3"style="background: #eeddc4e3;">
                             <div class="font-weight-bold mb-1">${message.username}</div>
                             ${message.text}
                         </div>
@@ -190,10 +164,9 @@ function outputUsers(users) {
     else if (user.username === username) {
       return;
     } else {
+      // display profile image of current user else display default image
       li.innerHTML = `<a class="active_users start_chat list-group item list-group-item-action border-0">
                       <div class="d-flex align-items-start p-2">
-                          <img src="./imgs/profile${randomNum}.jpg" class="rounded-circle mx-2 border" alt="William Harris"
-                              width="40" height="40">
                           <div class="flex-grow-1 ml-3 name">
                               ${user.username}
                               <div class="d-flex justify-content-between">
@@ -208,13 +181,55 @@ function outputUsers(users) {
   });
 }
 
+// display history messages to DOM
+function outputHistoryMessages(history) {
+  history.forEach((data) => {
+    const div = document.createElement("div");
+
+    // check if history is for current chat room
+    if (data.chat_room === room) {
+      //  get actual time in 12 hour format with AM/PM
+      let time_in_Hours = new Date(data.time_stamp).toLocaleString("en-US", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      });
+
+      // check if message is from current user
+      if (data.user_id === current_user.innerText) {
+        div.innerHTML = `<div class="chat-message-right mb-4">
+                        <div>
+                            <img src="./imgs/${data.images}" class="rounded-circle mr-1" alt="Chris Wood"
+                                width="40" height="40">
+                            <div class="text-muted small text-nowrap mt-2">${time_in_Hours}</div>
+                        </div>
+                        <div class="flex-shrink-1 rounded py-2 px-3 mr-3" style="background: #d6eaea;">
+                            <div class="font-weight-bold mb-1">${data.user_id}</div>
+                            ${data.message}
+                        </div>
+                      </div>`;
+      } else {
+        div.innerHTML = `<div class="chat-message-left pb-4">
+                        <div>
+                            <img src="./imgs/${data.images}" class="rounded-circle mr-1" alt="Sharon Lessman"
+                                width="40" height="40">
+                            <div class="text-muted small text-nowrap mt-2">${time_in_Hours}</div>
+                        </div>
+                        <div class="flex-shrink-1 rounded py-2 px-3 ml-3"style="background: #eeddc4e3;">                      
+                            <div class="font-weight-bold mb-1">${data.user_id}</div>
+                            ${data.message}
+                        </div>
+                    </div>`;
+      }
+    } else {
+      div.innerHTML = `<div class="text-center alert alert-info alert-dismissible fade show" role="alert">
+                        ${data.message}
+                      </div>`;
+    }
+
+    document.querySelector(".chat-messages").appendChild(div);
+  });
+}
+
 // display image in profile
 document.getElementById("profile_image_user").src = "./imgs/" + image;
-
-//Prompt the user before leave chat room
-document.getElementById("leave-btn").addEventListener("click", () => {
-  // destroy the session
-  socket.emit("logout", username);
-  window.location = "../index.html";
-});
-

@@ -69,18 +69,23 @@
 										<div class="input-group mb-3">
 											<label class="input-group-text" for="room">chat channel</label>
 											<select class="form-select" name="room" id="room">
-												<option value="Business">Business </option>
-												<option value="Technology">Technology</option>
+												<option value="World Cup">World Cup </option>
+												<option value="Computer science">Computer science</option>
 												<option value="Sport">Sports</option>
-												<option value="news">International News</option>
-												<option value="cats">Just Cats</option>
+												<option value="Lecturers">Lecturers</option>
+												<option value="Big Boys">Big Boys</option>
 											</select>
 										</div>
 
 
 										<div class="pt-1 mb-4">
-											<button class="btn btn-dark btn-lg btn-block" name="login" id="submit"
+											<button class="btn btn-dark btn-lg btn-block" id="login_load_1" name="login" id="submit"
 												type="submit">Login to chat</button>
+											<button class="btn btn-dark btn-lg btn-block" id="login_load_2" type="button" disabled>
+												<span class="spinner-border spinner-border-sm" role="status"
+													aria-hidden="true"></span>
+												Loading...
+											</button>
 										</div>
 
 										<div class="text-center">
@@ -103,27 +108,27 @@
 	<!-- js links -->
 	<style src="./js/main.js"></style>
 	<script>
-        // get loginerror from url
-        const urlParams = new URLSearchParams(window.location.search);
-        const msg = urlParams.get('loginerror');
-		const msg2 = urlParams.get('msg')		
-        const div = document.createElement("div");
-        if (msg) {
-            div.innerHTML = `<div class="text-center alert alert-danger alert-dismissible fade show" role="alert">
+		// get loginerror from url
+		const urlParams = new URLSearchParams(window.location.search);
+		const msg = urlParams.get('loginerror');
+		const msg2 = urlParams.get('msg')
+		const div = document.createElement("div");
+		if (msg) {
+			div.innerHTML = `<div class="text-center alert alert-danger alert-dismissible fade show" role="alert">
                        ${msg}                    
                     </div>`;
-        }else if(msg2){
+		} else if (msg2) {
 			div.innerHTML = `<div class="text-center alert alert-success alert-dismissible fade show" role="alert">
                        ${msg2}                    
                     </div>`;
 		}
-		
-        $('.notification_alerts').append(div).slideDown(200);
-        setTimeout(
-            () => $('.notification_alerts').slideUp(200),
-            3000
-        );
-    </script>
+
+		$('.notification_alerts').append(div).slideDown(200);
+		setTimeout(
+			() => $('.notification_alerts').slideUp(200),
+			3000
+		);
+	</script>
 </body>
 
 </html>

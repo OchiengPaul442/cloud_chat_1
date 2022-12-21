@@ -168,4 +168,8 @@ a {
   z-index: 100;
 }
 
+/* hide loading button */
+#login_load_2 {
+  display: none;
+}
 

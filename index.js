@@ -102,12 +102,22 @@ db.connect((err) => {
 // ********************************************************************************* //
 // index page
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname + "/public/index.html"));
+  // check if user is logged in
+  if (req.session.user_name) {
+    res.redirect("/chat");
+  } else {
+    res.sendFile(path.join(__dirname + "/public/index.html"));
+  }
 });
 
 // chat page
 app.get("/chat", (req, res) => {
-  res.sendFile(path.join(__dirname + "/public/chat.html"));
+  // check if user is logged in
+  if (!req.session.user_name) {
+    res.redirect("/");
+  } else {
+    res.sendFile(path.join(__dirname + "/public/chat.html"));
+  }
 });
 
 // register page
@@ -293,12 +303,14 @@ io.on("connection", (socket) => {
 
     // select user profile image
     let sql_ = `SELECT profile_img FROM users_details WHERE user_name = '${user.username}'`;
-    db.query (sql_, (err , result) => {
+    db.query(sql_, (err, result) => {
       if (err) throw err;
       image = result[0].profile_img;
-      io.to(user.room).emit("message", formatMessage(user.username, msg, image));
+      io.to(user.room).emit(
+        "message",
+        formatMessage(user.username, msg, image)
+      );
     });
-
 
     // Encrypt the message
     let encrypted = CryptoJS.AES.encrypt(msg, secretKey).toString();

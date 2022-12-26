@@ -1,4 +1,3 @@
-<!-- INSPIRED BY BRAD TRAVERSY CHAT APP -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -24,9 +23,9 @@
 	<link rel="stylesheet" href="./css/style.css">
 </head>
 
-<body>
-	<section class="vh-100" style="background-color: #306E93;">
-		<div class="container py-5 h-100">
+<body style="background-color: #306E93;">
+	<section class="vh-100">
+		<div class="container py-2 h-100">
 			<div class="row d-flex justify-content-center align-items-center h-100">
 				<div class="col col-xl-10">
 					<div class="card" style="border-radius: 1rem;">
@@ -39,7 +38,7 @@
 							<div class="col-md-6 col-lg-7 d-flex align-items-center">
 								<div class="card-body p-4 p-lg-5 text-black">
 
-									<form action="/loginForm" id="loginForm">
+									<form id="loginForm" action="/loginForm">
 
 										<div class="d-flex align-items-center mb-3 pb-1">
 											<img src="./imgs/Logo.png" width="80px" alt="">
@@ -68,24 +67,18 @@
 
 										<div class="input-group mb-3">
 											<label class="input-group-text" for="room">chat channel</label>
-											<select class="form-select" name="room" id="room">
-												<option value="World Cup">World Cup </option>
-												<option value="Computer science">Computer science</option>
-												<option value="Sport">Sports</option>
-												<option value="Lecturers">Lecturers</option>
-												<option value="Big Boys">Big Boys</option>
+											<select class="form-select" name="room" id="room"> 
+												<option value="general">general</option>
+												<option value="music">music</option>
+												<option value="sports">sports</option>
+												<option value="business">business</option>
+												<option value="education">education</option>
 											</select>
 										</div>
 
-
 										<div class="pt-1 mb-4">
-											<button class="btn btn-dark btn-lg btn-block" id="login_load_1" name="login" id="submit"
+											<button class="btn btn-dark btn-lg btn-block" name="auth" id="login_load_1"
 												type="submit">Login to chat</button>
-											<button class="btn btn-dark btn-lg btn-block" id="login_load_2" type="button" disabled>
-												<span class="spinner-border spinner-border-sm" role="status"
-													aria-hidden="true"></span>
-												Loading...
-											</button>
 										</div>
 
 										<div class="text-center">
@@ -101,12 +94,12 @@
 			</div>
 		</div>
 	</section>
+
 	<!-- notifications -->
 	<div class="notification_alerts" id="log_errr"></div>
 	<!-- end notifications -->
 
 	<!-- js links -->
-	<style src="./js/main.js"></style>
 	<script>
 		// get loginerror from url
 		const urlParams = new URLSearchParams(window.location.search);
@@ -127,7 +120,7 @@
 		setTimeout(
 			() => $('.notification_alerts').slideUp(200),
 			3000
-		);
+		);		
 	</script>
 </body>
 

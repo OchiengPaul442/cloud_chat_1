@@ -7,15 +7,20 @@ const bcrypt = require("bcrypt");
 const formatMessage = require("./helpers/formatDate");
 const app = express();
 const server = http.createServer(app);
-const io = socketio(server);
+const io = socketio(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 const csp = require("content-security-policy");
 const session = require("express-session");
+const sessionStore = new session.MemoryStore();
 const CryptoJS = require("crypto-js");
-const crypto = require("crypto");
 
 // secret key for encryption
 const secretKey = "secret key 123456789";
-const secretKey_2 = crypto.randomBytes(32).toString("hex");
 
 // content security policy header
 const cspPolicy = csp.getCSP({
@@ -53,34 +58,40 @@ const {
 // Set public directory
 app.use(express.static(path.join(__dirname, "public")));
 
-// This will apply this policy to all requests if no local policy is set
-app.use(cspPolicy);
-
-// ********************************************************************************* //
-// SESSION MIDDLEWARE
-// ********************************************************************************* //
-// session middleware
-app.use(
-  session({
-    secret: "my-secret", // used to sign the session ID cookie
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  })
-);
-
 // ********************************************************************************* //
 // API Middleware
 // ********************************************************************************* //
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// This will apply this policy to all requests if no local policy is set
+app.use(cspPolicy);
+
+// ********************************************************************************* //
+// SESSION MIDDLEWARE
+// ********************************************************************************* //
+app.use(
+  session({
+    secret: "my-secret", // used to sign the session ID cookie
+    resave: false, // don't save session if unmodified
+    saveUninitialized: false, // don't create session until something stored
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: true, // only send session ID cookie if the request originated from the same site
+      secure: false, // only send session ID cookie over HTTPS
+    },
+  })
+);
+
+// sessionstore
+app.use((req, res, next) => {
+  req.sessionStore = sessionStore;
+  next();
+});
+
 // ********************************************************************************* //
 // connection to mysql database
 // ********************************************************************************* //
-
 // define database connection
 const db = mysql.createConnection({
   host: "localhost",
@@ -98,49 +109,7 @@ db.connect((err) => {
 });
 
 // ********************************************************************************* //
-// define routes
-// ********************************************************************************* //
-// index page
-app.get("/", (req, res) => {
-  // check if user is logged in
-  if (req.session.user_name) {
-    res.redirect("/chat");
-  } else {
-    res.sendFile(path.join(__dirname + "/public/index.html"));
-  }
-});
-
-// chat page
-app.get("/chat", (req, res) => {
-  // check if user is logged in
-  if (!req.session.user_name) {
-    res.redirect("/");
-  } else {
-    res.sendFile(path.join(__dirname + "/public/chat.html"));
-  }
-});
-
-// register page
-app.get("/register", (req, res) => {
-  res.sendFile(path.join(__dirname + "/public/register.html"));
-});
-
-// logout
-app.get("/logout", (req, res) => {
-  // set user_status to offline
-  let stats = 0;
-  let sql_ = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${req.session.user_name}'`;
-  db.query(sql_, (err, result) => {
-    if (err) throw err;
-    // destroy session
-    req.session.destroy();
-    // redirect to index page
-    res.redirect("/");
-  });
-});
-
-// ********************************************************************************* //
-//AUTHENTICATIONS
+// Auth Routes
 // ********************************************************************************* //
 // register user
 app.get("/registerForm", (req, res) => {
@@ -150,7 +119,7 @@ app.get("/registerForm", (req, res) => {
   let user_password = req.query.user_password;
 
   // check if user already exists
-  let sql_ = `SELECT * FROM users_details WHERE user_email = '${user_email}'`;
+  let sql_ = `SELECT * FROM users_details WHERE user_email = '${user_email}' or user_name = '${user_name}'`;
   db.query(sql_, (err, result) => {
     if (err) throw err;
     if (result.length > 0) {
@@ -225,6 +194,8 @@ app.get("/loginForm", (req, res) => {
         } else {
           // set session variables
           req.session.user_name = user_name;
+          req.session.room = room;
+          req.session.image = result[0].profile_img;
           req.session.id = result[0].id;
 
           // if user status is 0 then proceed else redirect to index page
@@ -234,9 +205,13 @@ app.get("/loginForm", (req, res) => {
             db.query(statusUpdate, (err, result_) => {
               if (err) throw err;
               // redirect to chat page
-              res.redirect(
-                `/chat?username=${user_name}&room=${room}&image=${result[0].profile_img}`
-              );
+              if (req.session.user_name && req.session.id && req.session.room) {
+                res.redirect(
+                  `/chat?username=${user_name}&room=${room}&image=${result[0].profile_img}`
+                );
+              } else {
+                res.redirect("/");
+              }
             });
           } else {
             res.redirect("/?loginerror= user already logged in");
@@ -252,9 +227,62 @@ app.get("/loginForm", (req, res) => {
 });
 
 // ********************************************************************************* //
+// define app routes
+// ********************************************************************************* //
+// index page
+app.get("/", (req, res) => {
+  // check if user is logged in
+  if (req.session.user_name && req.session.id && req.session.room) {
+  res.redirect("/chat");
+  } else {
+    res.sendFile(path.join(__dirname + "/public/index.html"));
+  }
+});
+
+// chat page
+app.get("/chat", (req, res) => {
+  // check if user is logged in
+  if (req.session.id) {
+    res.sendFile(path.join(__dirname + "/public/chat.html"));
+  } else {
+    // set status to offline
+    let sql_ = `UPDATE users_details SET user_status = '0' WHERE user_name = '${req.session.user_name}'`;
+    db.query(sql_, (err, result) => {
+      if (err) throw err;
+      // destroy session
+      req.session.destroy();
+      // redirect to index page
+      res.redirect("/?loginerror=login to access chat");
+    });
+  }
+});
+
+// register page
+app.get("/register", (req, res) => {
+  res.sendFile(path.join(__dirname + "/public/register.html"));
+});
+
+// logout
+app.get("/logout", (req, res) => {
+  // set user_status to offline
+  let stats = 0;
+  let sql_ = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${req.session.user_name}'`;
+  db.query(sql_, (err, result) => {
+    if (err) throw err;
+    // destroy session
+    req.session.destroy();
+    // redirect to index page
+    res.redirect("/");
+  });
+});
+
+// ********************************************************************************* //
 // THIS BLOCK RUNS WHEN USER CONNECTS TO SOCKET
 // ********************************************************************************* //
 io.on("connection", (socket) => {
+  // ********************************************************************************* //
+  // JOIN ROOM
+  // ********************************************************************************* //
   socket.on("joinRoom", ({ username, room }) => {
     const user = newUser(socket.id, username, room);
 
@@ -265,6 +293,13 @@ io.on("connection", (socket) => {
       "message",
       formatMessage("CloudChat", "Messages are limited to this room! ")
     );
+
+    // set user status to 1
+    let stats = 1;
+    let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${username}'`;
+    db.query(statusUpdate, (err, result) => {
+      if (err) throw err;
+    });
 
     // broadcast chat history from database
     let sql = `SELECT * FROM messages WHERE chat_room = '${user.room}'`;
@@ -290,10 +325,12 @@ io.on("connection", (socket) => {
     io.to(user.room).emit("roomUsers", {
       room: user.room,
       users: getIndividualRoomUsers(user.room),
-    });
+    });    
   });
 
+  // ********************************************************************************* //
   // Listen for client message
+  // ********************************************************************************* //
   socket.on("chatMessage", ({ msg, image }) => {
     const user = getActiveUser(socket.id);
 
@@ -323,9 +360,18 @@ io.on("connection", (socket) => {
     });
   });
 
+  // ********************************************************************************* //
   // Runs when client disconnects
+  // ********************************************************************************* //
   socket.on("disconnect", () => {
     const user = exitRoom(socket.id);
+
+    // update user status to 0
+    let stats = 0;
+    let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${user.username}'`;
+    db.query(statusUpdate, (err, result_) => {
+      if (err) throw err;
+    });
 
     if (user) {
       io.to(user.room).emit(

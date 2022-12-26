@@ -42,6 +42,9 @@
                 <li>
                   <a style="background: antiquewhite;" class="dropdown-item text-capitalize" id="current_user">
                   </a>
+                  <a style="background: antiquewhite;" class="dropdown-item text-capitalize" id="current_users">
+                  </a>
+
                 </li>
                 <!-- logout form -->
                 <li>
@@ -57,12 +60,12 @@
       <div class="card">
         <div class="row g-0">
           <div class="col-12 col-lg-5 col-xl-3 border-end relative" style="background: antiquewhite;">
-            <!-- User accounts -->
+            <!-- User accounts header -->
             <div>
-              <h3 class="text-start p-2 fw-bolder">User Activity</h3>
+              <h3 class="text-start p-2 fw-bolder">Activity</h3>
             </div>
-            <!-- end user accounts -->
-
+            <!-- end user accounts header -->
+            <hr>
             <!-- search section -->
             <div class="px-4 d-none d-md-block">
               <div class="d-flex align-items-center">
@@ -74,9 +77,11 @@
               </div>
             </div>
             <!-- end of search section -->
-            <hr>
+            <div>
+              <h3 class="text-start p-2 fw-bolder">Users in Room</h3>
+            </div>
             <!-- List of online users  -->
-            <ul style="margin: 0; padding: 0;" id="users"></ul>
+            <ul style="margin: 0; padding: 0;overflow: auto;" id="users"></ul>
             <!-- end List of online users  -->
             <hr>
           </div>

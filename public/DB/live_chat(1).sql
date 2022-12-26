@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 16, 2022 at 08:50 PM
+-- Generation Time: Dec 26, 2022 at 01:18 AM
 -- Server version: 10.4.24-MariaDB
 -- PHP Version: 8.1.6
 
@@ -32,7 +32,8 @@ CREATE TABLE `messages` (
   `user_id` varchar(100) NOT NULL,
   `message` mediumtext NOT NULL,
   `time_stamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  `chat_room` varchar(50) NOT NULL
+  `chat_room` varchar(50) NOT NULL,
+  `images` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -42,13 +43,21 @@ CREATE TABLE `messages` (
 --
 
 CREATE TABLE `users_details` (
-  `user_id` int(50) NOT NULL,
-  `user_name` varchar(100) NOT NULL,
+  `id` int(11) NOT NULL,
+  `user_name` varchar(50) NOT NULL,
   `user_email` varchar(100) NOT NULL,
   `user_password` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `profile_img` varchar(100) NOT NULL
+  `profile_img` varchar(50) NOT NULL,
+  `user_status` int(50) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `users_details`
+--
+
+INSERT INTO `users_details` (`id`, `user_name`, `user_email`, `user_password`, `created_at`, `profile_img`, `user_status`) VALUES
+(6, 'admin', 'admin@gmail.com', '$2b$10$wdtv59fUnHMJpbJHYnEQyOCnnEOgTIrhCVPP//BYpj5nMWochQ21q', '2022-12-23 17:20:42', 'profile5.jpg', 0);
 
 --
 -- Indexes for dumped tables
@@ -58,13 +67,14 @@ CREATE TABLE `users_details` (
 -- Indexes for table `messages`
 --
 ALTER TABLE `messages`
-  ADD PRIMARY KEY (`message_id`);
+  ADD PRIMARY KEY (`message_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `users_details`
 --
 ALTER TABLE `users_details`
-  ADD PRIMARY KEY (`user_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -74,13 +84,13 @@ ALTER TABLE `users_details`
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `message_id` int(100) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `message_id` int(100) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
 
 --
 -- AUTO_INCREMENT for table `users_details`
 --
 ALTER TABLE `users_details`
-  MODIFY `user_id` int(50) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

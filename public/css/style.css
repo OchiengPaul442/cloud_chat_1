@@ -19,6 +19,8 @@ body {
   font-size: 16px;
   background: var(--light-color);
   margin-top: 25px;
+  height: 100%;
+  width: 100%;
 }
 
 ul {
@@ -29,17 +31,7 @@ a {
   text-decoration: none;
 }
 
-/* .btn {
-  cursor: pointer;
-  padding: 5px 15px;
-  color: var(--dark-color-a);
-  border: 0;
-  font-size: 17px;
-  border-radius: 4px;
-} */
-
 /* Chat Page */
-
 .chat-container {
   max-width: 1100px;
   background: #fff;

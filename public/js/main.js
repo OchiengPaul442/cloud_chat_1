@@ -4,6 +4,9 @@ const roomName = document.getElementById("room-name");
 const userList = document.getElementById("users");
 const current_user = document.getElementById("current_user");
 const connectPort = document.getElementById("connect_port");
+const chatRooms = document.getElementById("chatrooms_");
+const addRoom = document.getElementById("addRoom");
+const addchatroommessage = document.querySelector(".add_room_message");
 
 // Get username and room from URL
 const { username, room, image } = Qs.parse(location.search, {
@@ -21,39 +24,9 @@ socket.on("roomUsers", ({ room, users }) => {
   outputUsers(users);
 });
 
-// Message from server
-socket.on("message", (message) => {
-  outputMessage(message);
-  // Scroll down
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-});
-
-// chat history from server
-socket.on("chatHistory", (history) => {
-  outputHistoryMessages(history);
-});
-
-// port submit
-connectPort.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  // Get port number
-  let port = e.target.elements.port.value;
-
-  port = port.trim();
-
-  if (!port) {
-    return false;
-  }
-
-  // Emit port to server
-  // socket.emit("port", { port });
-
-  // Clear input
-  e.target.elements.port.value = "";
-  e.target.elements.port.focus();
-});
-
+// ***************************************************** //
+// *******************  CHAT MESSAGES  ***************** //
+// ***************************************************** //
 // Message submit
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -75,6 +48,21 @@ chatForm.addEventListener("submit", (e) => {
   e.target.elements.msg.focus();
 });
 
+// Message from server
+socket.on("message", (message) => {
+  outputMessage(message);
+  // Scroll down
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+// chat history from server
+socket.on("chatHistory", (history) => {
+  outputHistoryMessages(history);
+});
+
+// ***************************************************** //
+// *******************  FUNCTIONS  ********************* //
+// ***************************************************** //
 // Output message to DOM
 function outputMessage(message) {
   if (message.username === "CloudChat") {

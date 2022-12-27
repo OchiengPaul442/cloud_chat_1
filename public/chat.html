@@ -167,20 +167,21 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h1 class="modal-title fs-5" id="connecttoserverlabel">Enter connection port:</h1>
+          <h1 class="modal-title fs-5" id="connecttoserverlabel">Enter connection port address:</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form id="connect_port">
           <div class="modal-body">
+            <div class="conn_notif"></div>
             <div class="input-group flex-nowrap">
-              <span class="input-group-text" id="addon-wrapping">Port:</span>
-              <input type="text" id="port" class="form-control" placeholder="....." aria-label="Username"
-                aria-describedby="addon-wrapping">
+              <span class="input-group-text" id="addon-wrapping">Port address:</span>
+              <input type="text" id="port" name="port" class="form-control" placeholder="http://address:port"
+                aria-label="Username" aria-describedby="addon-wrapping">
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-danger" data-bs-dismiss="modal">No</button>
-            <button type="button" class="btn btn-success">Connect</button>
+            <button type="submit" class="btn btn-success">Connect</button>
           </div>
         </form>
       </div>

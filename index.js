@@ -1,12 +1,13 @@
 const path = require("path");
-const http = require("http");
+const http = require("http"); // create http server
 const mysql = require("mysql");
 const express = require("express");
-const socketio = require("socket.io");
+const socketio = require("socket.io"); // create socket server
 const bcrypt = require("bcrypt");
 const formatMessage = require("./helpers/formatDate");
-const app = express();
-const server = http.createServer(app);
+const app = express(); // create express app
+const server = http.createServer(app); // create server
+const socketioClient = require("socket.io-client");
 const io = socketio(server, {
   cors: {
     origin: "http://localhost:3000",
@@ -18,6 +19,14 @@ const csp = require("content-security-policy");
 const session = require("express-session");
 const sessionStore = new session.MemoryStore();
 const CryptoJS = require("crypto-js");
+const readline = require("readline");
+let clientConnection = "";
+
+// ********************************************************************************* //
+// PORT TO RUN SERVER
+// ********************************************************************************* //
+const PORT = 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // secret key for encryption
 const secretKey = "secret key 123456789";
@@ -54,6 +63,7 @@ const {
   newUser,
   getIndividualRoomUsers,
 } = require("./helpers/userHelper");
+const { get } = require("jquery");
 
 // Set public directory
 app.use(express.static(path.join(__dirname, "public")));
@@ -233,7 +243,7 @@ app.get("/loginForm", (req, res) => {
 app.get("/", (req, res) => {
   // check if user is logged in
   if (req.session.user_name && req.session.id && req.session.room) {
-  res.redirect("/chat");
+    res.redirect("/chat");
   } else {
     res.sendFile(path.join(__dirname + "/public/index.html"));
   }
@@ -280,118 +290,179 @@ app.get("/logout", (req, res) => {
 // THIS BLOCK RUNS WHEN USER CONNECTS TO SOCKET
 // ********************************************************************************* //
 io.on("connection", (socket) => {
-  // ********************************************************************************* //
-  // JOIN ROOM
-  // ********************************************************************************* //
-  socket.on("joinRoom", ({ username, room }) => {
-    const user = newUser(socket.id, username, room);
-
-    socket.join(user.room);
-
-    // General welcome
-    socket.emit(
-      "message",
-      formatMessage("CloudChat", "Messages are limited to this room! ")
-    );
-
-    // set user status to 1
-    let stats = 1;
-    let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${username}'`;
-    db.query(statusUpdate, (err, result) => {
-      if (err) throw err;
+  try {
+    // connect port
+    socket.on("connectPort", (port) => {
+      console.log("port connected");
+      clientConnection = port;
+      getPort(clientConnection);
+      message = "port connected successfully go to your terminal to send messages"; 
+      socket.emit("success", message);
     });
+    // ********************************************************************************* //
+    // JOIN ROOM
+    // ********************************************************************************* //
+    socket.on("joinRoom", ({ username, room }) => {
+      const user = newUser(socket.id, username, room);
 
-    // broadcast chat history from database
-    let sql = `SELECT * FROM messages WHERE chat_room = '${user.room}'`;
-    db.query(sql, (err, result) => {
-      if (err) throw err;
-      // decrypt the message
-      for (let i = 0; i < result.length; i++) {
-        const decrypted = CryptoJS.AES.decrypt(result[i].message, secretKey);
-        result[i].message = decrypted.toString(CryptoJS.enc.Utf8);
-      }
-      socket.emit("chatHistory", result);
-    });
+      socket.join(user.room);
 
-    // Broadcast everytime users connects
-    socket.broadcast
-      .to(user.room)
-      .emit(
+      // General welcome
+      socket.emit(
         "message",
-        formatMessage("CloudChat_join", `${user.username} has joined the room`)
+        formatMessage("CloudChat", "Messages are limited to this room! ")
       );
 
-    // Current active users and room name
-    io.to(user.room).emit("roomUsers", {
-      room: user.room,
-      users: getIndividualRoomUsers(user.room),
-    });    
-  });
+      // set user status to 1
+      let stats = 1;
+      let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${username}'`;
+      db.query(statusUpdate, (err, result) => {
+        if (err) throw err;
+      });
 
-  // ********************************************************************************* //
-  // Listen for client message
-  // ********************************************************************************* //
-  socket.on("chatMessage", ({ msg, image }) => {
-    const user = getActiveUser(socket.id);
+      // broadcast chat history from database
+      let sql = `SELECT * FROM messages WHERE chat_room = '${user.room}'`;
+      db.query(sql, (err, result) => {
+        if (err) throw err;
+        // decrypt the message
+        for (let i = 0; i < result.length; i++) {
+          const decrypted = CryptoJS.AES.decrypt(result[i].message, secretKey);
+          result[i].message = decrypted.toString(CryptoJS.enc.Utf8);
+        }
+        socket.emit("chatHistory", result);
+      });
 
-    // prevent sql injection
-    msg = msg.replace(/'/g, "''");
-    image = image.replace(/'/g, "''");
-
-    // select user profile image
-    let sql_ = `SELECT profile_img FROM users_details WHERE user_name = '${user.username}'`;
-    db.query(sql_, (err, result) => {
-      if (err) throw err;
-      image = result[0].profile_img;
-      io.to(user.room).emit(
-        "message",
-        formatMessage(user.username, msg, image)
-      );
-    });
-
-    // Encrypt the message
-    let encrypted = CryptoJS.AES.encrypt(msg, secretKey).toString();
-
-    // save message to database with user id
-    let sql = `INSERT INTO messages (user_id, message, chat_room,images) VALUES ('${user.username}', '${encrypted}', '${user.room}','${image}')`;
-    db.query(sql, (err) => {
-      if (err) throw err;
-      // console.log(result);
-    });
-  });
-
-  // ********************************************************************************* //
-  // Runs when client disconnects
-  // ********************************************************************************* //
-  socket.on("disconnect", () => {
-    const user = exitRoom(socket.id);
-
-    // update user status to 0
-    let stats = 0;
-    let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${user.username}'`;
-    db.query(statusUpdate, (err, result_) => {
-      if (err) throw err;
-    });
-
-    if (user) {
-      io.to(user.room).emit(
-        "message",
-        formatMessage("cloudchat_left", `${user.username} has left the room`)
-      );
+      // Broadcast everytime users connects
+      socket.broadcast
+        .to(user.room)
+        .emit(
+          "message",
+          formatMessage(
+            "CloudChat_join",
+            `${user.username} has joined the room`
+          )
+        );
 
       // Current active users and room name
       io.to(user.room).emit("roomUsers", {
         room: user.room,
         users: getIndividualRoomUsers(user.room),
       });
+    });
+
+    // ********************************************************************************* //
+    // Listen for client message
+    // ********************************************************************************* //
+    socket.on("chatMessage", ({ msg, image }) => {
+      const user = getActiveUser(socket.id);
+
+      // prevent sql injection
+      msg = msg.replace(/'/g, "''");
+      image = image.replace(/'/g, "''");
+
+      // select user profile image
+      let sql_ = `SELECT profile_img FROM users_details WHERE user_name = '${user.username}'`;
+      db.query(sql_, (err, result) => {
+        if (err) throw err;
+        image = result[0].profile_img;
+        io.to(user.room).emit(
+          "message",
+          formatMessage(user.username, msg, image)
+        );
+      });
+
+      // Encrypt the message
+      let encrypted = CryptoJS.AES.encrypt(msg, secretKey).toString();
+
+      // save message to database with user id
+      let sql = `INSERT INTO messages (user_id, message, chat_room,images) VALUES ('${user.username}', '${encrypted}', '${user.room}','${image}')`;
+      db.query(sql, (err) => {
+        if (err) throw err;
+        // console.log(result);
+      });
+    });
+
+    // ********************************************************************************* //
+    // Runs when client disconnects
+    // ********************************************************************************* //
+    socket.on("disconnect", () => {
+      const user = exitRoom(socket.id);
+
+      // update user status to 0
+      let stats = 0;
+      let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${user.username}'`;
+      db.query(statusUpdate, (err, result_) => {
+        if (err) throw err;
+      });
+
+      if (user) {
+        io.to(user.room).emit(
+          "message",
+          formatMessage("cloudchat_left", `${user.username} has left the room`)
+        );
+
+        // Current active users and room name
+        io.to(user.room).emit("roomUsers", {
+          room: user.room,
+          users: getIndividualRoomUsers(user.room),
+        });
+      }
+    });
+  } catch (error) {
+    if (error) {
+      console.log("There was an error processing your request");
     }
-  });
+  }
 });
 
 // ********************************************************************************* //
-// PORT TO RUN SERVER
+// CONNECT TO OTHER SERVERs
 // ********************************************************************************* //
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+function getPort(clientConnection) {
+  console.log("clientConnection", clientConnection);
+  const server1 = socketioClient(`${clientConnection}`);
 
-// https://socket.io/docs/v3/client-initialization/
+  //CHECK CONNECTION TO SERVER
+  server1.on("connect", () => {
+    console.log("connected to server");
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      prompt: "ROBEX_SERVER:",
+
+      removeHistoryDuplicates: true,
+
+      terminal: true,
+
+      emitKeypressEvents: true,
+    });
+
+    rl.prompt();
+
+    rl.on("line", (input) => {
+      io.emit("message", input);
+      rl.prompt();
+    });
+
+    server1.on("message", (msg) => {
+      console.log("\nCHAT_SERVER2: " + msg);
+      rl.prompt();
+    });
+
+    server1.on("disconnect", () => {
+      console.log("disconnected from server");
+    });
+
+    rl.on("close", () => {
+      console.log("Have a great day!");
+      process.exit(0);
+    });
+
+    server1.on("error", (err) => {
+      if (err) {
+        console.log("error connecting to server");
+      }
+    });
+  });
+}

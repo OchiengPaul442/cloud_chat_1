@@ -25,6 +25,44 @@ socket.on("roomUsers", ({ room, users }) => {
 });
 
 // ***************************************************** //
+// *******************  Remote server  ***************** //
+// ***************************************************** //
+// connect to remote server
+connectPort.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  // Get port number
+  let port = e.target.elements.port.value;
+
+  port = port.trim();
+
+  if (!port) {
+    return false;
+  }
+
+  // Emit port number to server
+  socket.emit("connectPort", port);
+
+  // Clear input
+  e.target.elements.port.value = "";
+  e.target.elements.port.focus();
+});
+
+// success message from server
+socket.on("success", (message) => {
+  // show notification modal for 3 seconds
+  const div = document.createElement("div");
+  div.innerHTML = `<div class="text-center alert alert-success alert-dismissible fade show" role="alert">
+                           ${message}                    
+                        </div>`;
+  document.querySelector(".conn_notif").appendChild(div);
+  setTimeout(
+    () => document.querySelector(".conn_notif").removeChild(div),
+    4000
+  );
+});
+
+// ***************************************************** //
 // *******************  CHAT MESSAGES  ***************** //
 // ***************************************************** //
 // Message submit
@@ -58,6 +96,8 @@ socket.on("message", (message) => {
 // chat history from server
 socket.on("chatHistory", (history) => {
   outputHistoryMessages(history);
+  // scroll to bottom
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 // ***************************************************** //

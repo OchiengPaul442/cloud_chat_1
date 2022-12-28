@@ -18,20 +18,32 @@ const io = socketio(server, {
 const csp = require("content-security-policy");
 const session = require("express-session");
 const sessionStore = new session.MemoryStore();
-const CryptoJS = require("crypto-js");
-const readline = require("readline");
+const CryptoJS = require("crypto-js"); // encryption
+const readline = require("readline"); // read input from console
 let clientConnection = "";
-
-// ********************************************************************************* //
-// PORT TO RUN SERVER
-// ********************************************************************************* //
-const PORT = 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // secret key for encryption
 const secretKey = "secret key 123456789";
 
-// content security policy header
+// xss middleware to prevent XSS attacks by sanitizing user input cross site scripting
+const xss = require("xss-clean");
+
+// Sanitize user input to prevent XSS attacks
+app.use(xss());
+
+// Enable rate limiting to prevent brute force attacks
+const rateLimit = require("express-rate-limit"); // prevent brute force attacks
+
+// Limit requests from the same IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+
+//  apply to all requests
+app.use(limiter);
+
+// content security policy header to prevent cross site request forgery attacks
 const cspPolicy = csp.getCSP({
   directives: {
     "default-src": csp.SRC_SELF,
@@ -57,16 +69,15 @@ const cspPolicy = csp.getCSP({
   },
 });
 
+// This will apply this policy to all requests if no local policy is set
+app.use(cspPolicy);
+
 const {
   getActiveUser,
   exitRoom,
   newUser,
   getIndividualRoomUsers,
 } = require("./helpers/userHelper");
-const { get } = require("jquery");
-
-// Set public directory
-app.use(express.static(path.join(__dirname, "public")));
 
 // ********************************************************************************* //
 // API Middleware
@@ -74,8 +85,8 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// This will apply this policy to all requests if no local policy is set
-app.use(cspPolicy);
+// Set public directory
+app.use(express.static(path.join(__dirname, "public")));
 
 // ********************************************************************************* //
 // SESSION MIDDLEWARE
@@ -129,8 +140,10 @@ app.get("/registerForm", (req, res) => {
   let user_password = req.query.user_password;
 
   // check if user already exists
-  let sql_ = `SELECT * FROM users_details WHERE user_email = '${user_email}' or user_name = '${user_name}'`;
-  db.query(sql_, (err, result) => {
+  // Set up the prepared statement and the parameters to prevent SQL injection
+  let sql = `SELECT * FROM users_details WHERE user_email = ? or user_name = ?`;
+  let params = [user_email, user_name];
+  db.query(sql, params, (err, result) => {
     if (err) throw err;
     if (result.length > 0) {
       res.redirect("/register?msg=user exists");
@@ -153,11 +166,6 @@ app.get("/registerForm", (req, res) => {
             "/register?msg=password must contain special characters"
           );
         } else {
-          // prevent sql injection
-          user_name = user_name.replace(/'/g, "\\'");
-          user_email = user_email.replace(/'/g, "\\'");
-          user_password = user_password.replace(/'/g, "\\'");
-
           // hash user_password before storing in database
           let saltRounds = 10;
           let myPlaintextPassword = user_password;
@@ -165,9 +173,13 @@ app.get("/registerForm", (req, res) => {
           // get random number for profile picture
           let random_number = Math.floor(Math.random() * 5) + 1;
           let profile_picture = `profile${random_number}.jpg`;
-          // insert into database
-          let sql = `INSERT INTO users_details (user_name, user_email ,user_password,profile_img) VALUES ('${user_name}', '${user_email}', '${hashed_pass}', '${profile_picture}')`;
-          db.query(sql, (err, result) => {
+
+          // Set up the prepared statement and the parameters to prevent SQL injection
+          let sql = `INSERT INTO users_details (user_name, user_email ,user_password,profile_img) VALUES (?, ?, ?, ?)`;
+          let params = [user_name, user_email, hashed_pass, profile_picture];
+
+          // execute the prepared statement
+          db.query(sql, params, (err, result) => {
             if (err) throw err;
             res.redirect("/?msg=registered successfully");
           });
@@ -184,13 +196,13 @@ app.get("/loginForm", (req, res) => {
   let user_password = req.query.password;
   let room = req.query.room;
 
-  // prevent sql injection
-  user_name = user_name.replace(/'/g, "\\'");
-  user_password = user_password.replace(/'/g, "\\'");
-
   // check if user exists
-  let sql_ = `SELECT * FROM users_details WHERE user_email like '${user_name}' or user_name like '${user_name}'`;
-  db.query(sql_, (err, result) => {
+  // Set up the prepared statement and the parameters to prevent SQL injection
+  let sql = `SELECT * FROM users_details WHERE user_email = ? or user_name = ?`;
+  let params = [user_name, user_name];
+
+  // execute the prepared statement
+  db.query(sql, params, (err, result) => {
     if (err) throw err;
     if (result.length > 0) {
       // check if password matches
@@ -211,8 +223,13 @@ app.get("/loginForm", (req, res) => {
           // if user status is 0 then proceed else redirect to index page
           if (result[0].user_status == 0) {
             let stats = 1;
-            let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${user_name}'`;
-            db.query(statusUpdate, (err, result_) => {
+
+            // Set up the prepared statement and the parameters to prevent SQL injection
+            let statusUpdate = `UPDATE users_details SET user_status = ? WHERE user_name = ?`;
+            let params = [stats, user_name];
+
+            // execute the prepared statement
+            db.query(statusUpdate, params, (err, result_) => {
               if (err) throw err;
               // redirect to chat page
               if (req.session.user_name && req.session.id && req.session.room) {
@@ -256,8 +273,12 @@ app.get("/chat", (req, res) => {
     res.sendFile(path.join(__dirname + "/public/chat.html"));
   } else {
     // set status to offline
-    let sql_ = `UPDATE users_details SET user_status = '0' WHERE user_name = '${req.session.user_name}'`;
-    db.query(sql_, (err, result) => {
+    // Set up the prepared statement and the parameters to prevent SQL injection
+    let sql_ = `UPDATE users_details SET user_status = '0' WHERE user_name = ?`;
+    let params = [req.session.user_name];
+
+    // execute the prepared statement
+    db.query(sql_, params, (err, result) => {
       if (err) throw err;
       // destroy session
       req.session.destroy();
@@ -276,8 +297,11 @@ app.get("/register", (req, res) => {
 app.get("/logout", (req, res) => {
   // set user_status to offline
   let stats = 0;
-  let sql_ = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${req.session.user_name}'`;
-  db.query(sql_, (err, result) => {
+
+  // Set up the prepared statement and the parameters to prevent SQL injection
+  let sql_ = `UPDATE users_details SET user_status = ? WHERE user_name = ?`;
+  let params = [stats, req.session.user_name];
+  db.query(sql_, params, (err, result) => {
     if (err) throw err;
     // destroy session
     req.session.destroy();
@@ -293,12 +317,14 @@ io.on("connection", (socket) => {
   try {
     // connect port
     socket.on("connectPort", (port) => {
-      console.log("port connected");
+      console.log("port entered");
       clientConnection = port;
       getPort(clientConnection);
-      message = "port connected successfully go to your terminal to send messages"; 
+      message =
+        "port entered successfully go to your terminal to continue as a client-server initiates connection";
       socket.emit("success", message);
     });
+
     // ********************************************************************************* //
     // JOIN ROOM
     // ********************************************************************************* //
@@ -307,22 +333,29 @@ io.on("connection", (socket) => {
 
       socket.join(user.room);
 
-      // General welcome
       socket.emit(
-        "message",
+        "messages",
         formatMessage("CloudChat", "Messages are limited to this room! ")
       );
 
-      // set user status to 1
       let stats = 1;
-      let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${username}'`;
-      db.query(statusUpdate, (err, result) => {
+
+      // Set up the prepared statement and the parameters to prevent SQL injection
+      let statusUpdate = `UPDATE users_details SET user_status = ? WHERE user_name = ?`;
+      let params = [stats, username];
+
+      // execute the prepared statement
+      db.query(statusUpdate, params, (err, result) => {
         if (err) throw err;
       });
 
       // broadcast chat history from database
-      let sql = `SELECT * FROM messages WHERE chat_room = '${user.room}'`;
-      db.query(sql, (err, result) => {
+      // Set up the prepared statement and the parameters to prevent SQL injection
+      let sql = `SELECT * FROM messages WHERE chat_room = ?`;
+      let params_1 = [user.room];
+
+      // execute the prepared statement
+      db.query(sql, params_1, (err, result) => {
         if (err) throw err;
         // decrypt the message
         for (let i = 0; i < result.length; i++) {
@@ -336,17 +369,28 @@ io.on("connection", (socket) => {
       socket.broadcast
         .to(user.room)
         .emit(
-          "message",
+          "messages",
           formatMessage(
             "CloudChat_join",
             `${user.username} has joined the room`
           )
         );
 
-      // Current active users and room name
-      io.to(user.room).emit("roomUsers", {
-        room: user.room,
-        users: getIndividualRoomUsers(user.room),
+      // select al users in database
+      // Set up the prepared statement and the parameters to prevent SQL injection
+      let sql_ = `SELECT * FROM users_details`;
+
+      // execute the prepared statement
+      db.query(sql_, (err, result) => {
+        if (err) throw err;
+        // result.forEach((data) => {
+          // Current active users and room name
+          io.to(user.room).emit("roomUsers", {
+            room: user.room,
+            users: getIndividualRoomUsers(user.room),
+            pic: result,
+          });
+        // });
       });
     });
 
@@ -356,17 +400,17 @@ io.on("connection", (socket) => {
     socket.on("chatMessage", ({ msg, image }) => {
       const user = getActiveUser(socket.id);
 
-      // prevent sql injection
-      msg = msg.replace(/'/g, "''");
-      image = image.replace(/'/g, "''");
-
       // select user profile image
-      let sql_ = `SELECT profile_img FROM users_details WHERE user_name = '${user.username}'`;
-      db.query(sql_, (err, result) => {
+      // Set up the prepared statement and the parameters to prevent SQL injection
+      let sql_ = `SELECT profile_img FROM users_details WHERE user_name = ?`;
+      let params_2 = [user.username];
+
+      // execute the prepared statement
+      db.query(sql_, params_2, (err, result) => {
         if (err) throw err;
         image = result[0].profile_img;
         io.to(user.room).emit(
-          "message",
+          "messages",
           formatMessage(user.username, msg, image)
         );
       });
@@ -375,10 +419,13 @@ io.on("connection", (socket) => {
       let encrypted = CryptoJS.AES.encrypt(msg, secretKey).toString();
 
       // save message to database with user id
-      let sql = `INSERT INTO messages (user_id, message, chat_room,images) VALUES ('${user.username}', '${encrypted}', '${user.room}','${image}')`;
-      db.query(sql, (err) => {
+      // Set up the prepared statement and the parameters to prevent SQL injection
+      let sql = `INSERT INTO messages (user_id, message, chat_room,images) VALUES (?, ?, ?,?)`;
+      let params_3 = [user.username, encrypted, user.room, image];
+
+      // execute the prepared statement
+      db.query(sql, params_3, (err) => {
         if (err) throw err;
-        // console.log(result);
       });
     });
 
@@ -390,14 +437,17 @@ io.on("connection", (socket) => {
 
       // update user status to 0
       let stats = 0;
-      let statusUpdate = `UPDATE users_details SET user_status = '${stats}' WHERE user_name = '${user.username}'`;
-      db.query(statusUpdate, (err, result_) => {
+
+      // Set up the prepared statement and the parameters to prevent SQL injection
+      let statusUpdate = `UPDATE users_details SET user_status = ? WHERE user_name = ?`;
+      let params_4 = [stats, user.username];
+      db.query(statusUpdate, params_4, (err, result_) => {
         if (err) throw err;
       });
 
       if (user) {
         io.to(user.room).emit(
-          "message",
+          "messages",
           formatMessage("cloudchat_left", `${user.username} has left the room`)
         );
 
@@ -416,7 +466,7 @@ io.on("connection", (socket) => {
 });
 
 // ********************************************************************************* //
-// CONNECT TO OTHER SERVERs
+// CONNECT TO OTHER SERVERS
 // ********************************************************************************* //
 function getPort(clientConnection) {
   console.log("clientConnection", clientConnection);
@@ -424,12 +474,13 @@ function getPort(clientConnection) {
 
   //CHECK CONNECTION TO SERVER
   server1.on("connect", () => {
-    console.log("connected to server");
+    console.log("connected to server " + clientConnection);
 
+    // SEND MESSAGE TO SERVER
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: "ROBEX_SERVER:",
+      prompt: "CLOUDCHAT:",
 
       removeHistoryDuplicates: true,
 
@@ -446,7 +497,7 @@ function getPort(clientConnection) {
     });
 
     server1.on("message", (msg) => {
-      console.log("\nCHAT_SERVER2: " + msg);
+      console.log("\nCHATSERVER2: " + msg);
       rl.prompt();
     });
 
@@ -466,3 +517,9 @@ function getPort(clientConnection) {
     });
   });
 }
+
+// ********************************************************************************* //
+// PORT TO RUN SERVER
+// ********************************************************************************* //
+const PORT = 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

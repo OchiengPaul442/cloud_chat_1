@@ -19,9 +19,9 @@ const socket = io();
 socket.emit("joinRoom", { username, room });
 
 // Get room and users
-socket.on("roomUsers", ({ room, users }) => {
+socket.on("roomUsers", ({ room, users, pic }) => {
   outputRoomName(room);
-  outputUsers(users);
+  outputUsers(users, pic);
 });
 
 // ***************************************************** //
@@ -87,7 +87,7 @@ chatForm.addEventListener("submit", (e) => {
 });
 
 // Message from server
-socket.on("message", (message) => {
+socket.on("messages", (message) => {
   outputMessage(message);
   // Scroll down
   chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -176,25 +176,28 @@ function outputRoomName(room) {
 }
 
 // Add users to DOM
-function outputUsers(users) {
-  // console.log({ users });
+function outputUsers(users, pic) {
   userList.innerHTML = "";
   current_user.innerHTML = username;
 
-  users.forEach((user) => {
-    const li = document.createElement("li");
-
-    // check if there are no users in the room except the current user
-    if (users.length === 1) {
-      li.innerHTML = `<div class="alert alert-secondary text-center" role="alert">No Online Users</div>
+  pic.forEach((pic) => {
+    users.forEach((user) => {
+      const li = document.createElement("li");
+      if (pic.user_name === user.username) {
+        // check if there are no users in the room except the current user
+        if (users.length === 1) {
+          li.innerHTML = `<div class="alert alert-secondary text-center" role="alert">No Online Users</div>
       `;
-    } // dont display the current user in the user list
-    else if (user.username === username) {
-      return;
-    } else {
-      // display profile image of current user else display default image
-      li.innerHTML = `<a class="active_users start_chat list-group item list-group-item-action border-0">
-                      <div class="d-flex align-items-start p-2">
+        } // dont display the current user in the user list
+        else if (user.username === username) {
+          return;
+        } else {
+          // display profile image of current user else display default image
+          li.innerHTML = `<a class="active_users start_chat list-group item list-group-item-action border-0">
+                          <div class="d-flex align-items-start p-2">
+                          <img src="./imgs/${
+                            pic.profile_img ? pic.profile_img : "default.jpg"
+                          }" alt="user" style="margin:0 10px;" class="rounded-circle user_img" height="40" width="40">
                           <div class="flex-grow-1 ml-3 name">
                               ${user.username}
                               <div class="d-flex justify-content-between">
@@ -203,9 +206,10 @@ function outputUsers(users) {
                           </div>
                       </div>
                   </a>`;
-    }
-
-    userList.appendChild(li);
+        }
+        userList.appendChild(li);
+      }
+    });
   });
 }
 

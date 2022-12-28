@@ -228,7 +228,7 @@ function outputHistoryMessages(history) {
       });
 
       // check if message is from current user
-      if (data.user_id === current_user.innerText) {
+      if (data.user_id === username) {
         div.innerHTML = `<div class="chat-message-right mb-4">
                         <div>
                             <img src="./imgs/${data.images}" class="rounded-circle mr-1" alt="Chris Wood"

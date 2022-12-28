@@ -260,7 +260,7 @@ app.get("/loginForm", (req, res) => {
 app.get("/", (req, res) => {
   // check if user is logged in
   if (req.session.user_name && req.session.id && req.session.room) {
-    res.redirect("/chat");
+    res.redirect(`/chat?username=${req.session.user_name}&room=${req.session.room}&image=${req.session.image}`);
   } else {
     res.sendFile(path.join(__dirname + "/public/index.html"));
   }

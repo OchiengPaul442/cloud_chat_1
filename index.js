@@ -78,6 +78,7 @@ const {
   newUser,
   getIndividualRoomUsers,
 } = require("./helpers/userHelper");
+const { get } = require("jquery");
 
 // ********************************************************************************* //
 // API Middleware
@@ -260,7 +261,9 @@ app.get("/loginForm", (req, res) => {
 app.get("/", (req, res) => {
   // check if user is logged in
   if (req.session.user_name && req.session.id && req.session.room) {
-    res.redirect(`/chat?username=${req.session.user_name}&room=${req.session.room}&image=${req.session.image}`);
+    res.redirect(
+      `/chat?username=${req.session.user_name}&room=${req.session.room}&image=${req.session.image}`
+    );
   } else {
     res.sendFile(path.join(__dirname + "/public/index.html"));
   }
@@ -319,10 +322,15 @@ io.on("connection", (socket) => {
     socket.on("connectPort", (port) => {
       console.log("port entered");
       clientConnection = port;
-      getPort(clientConnection);
-      message =
-        "port entered successfully go to your terminal to continue as a client-server initiates connection";
-      socket.emit("success", message);
+      server2messages = "";
+      getPort(clientConnection, server2messages);
+      io.emit("success");
+    });
+
+    // emit message to client
+    socket.on("serverChatMessage", (msg) => {
+      io.emit("serverMessages", formatMessage("Server1", msg));
+      getPort(clientConnection, msg);
     });
 
     // ********************************************************************************* //
@@ -383,14 +391,12 @@ io.on("connection", (socket) => {
       // execute the prepared statement
       db.query(sql_, (err, result) => {
         if (err) throw err;
-        // result.forEach((data) => {
-          // Current active users and room name
-          io.to(user.room).emit("roomUsers", {
-            room: user.room,
-            users: getIndividualRoomUsers(user.room),
-            pic: result,
-          });
-        // });
+        // Current active users and room name
+        io.to(user.room).emit("roomUsers", {
+          room: user.room,
+          users: getIndividualRoomUsers(user.room),
+          pic: result,
+        });
       });
     });
 
@@ -468,53 +474,71 @@ io.on("connection", (socket) => {
 // ********************************************************************************* //
 // CONNECT TO OTHER SERVERS
 // ********************************************************************************* //
-function getPort(clientConnection) {
-  console.log("clientConnection", clientConnection);
+function getPort(clientConnection, server2messages) {
   const server1 = socketioClient(`${clientConnection}`);
 
-  //CHECK CONNECTION TO SERVER
   server1.on("connect", () => {
-    console.log("connected to server " + clientConnection);
+    // emit success connection
+    let msg = "connected to server on:" + clientConnection;
+    io.emit("serverprocess", formatMessage("SUCCESS", msg));
 
     // SEND MESSAGE TO SERVER
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      prompt: "CLOUDCHAT:",
+    // const rl = readline.createInterface({
+    //   input: process.stdin,
+    //   output: process.stdout,
+    //   prompt: "CLOUDCHAT:",
 
-      removeHistoryDuplicates: true,
+    //   removeHistoryDuplicates: true,
 
-      terminal: true,
+    //   terminal: true,
 
-      emitKeypressEvents: true,
-    });
+    //   emitKeypressEvents: true,
+    // });
 
-    rl.prompt();
+    // rl.on("line", (input) => {
+    //   io.emit("message", input);
+    //   rl.prompt();
+    // });
 
-    rl.on("line", (input) => {
-      io.emit("message", input);
-      rl.prompt();
-    });
+    // rl.prompt();
 
+    // rl.on("close", () => {
+    //   msg = "Have a great day!";
+    //   io.emit("sendServerMessaage", formatMessage("CHATSERVER2", msg));
+    //   process.exit(0);
+    // });
+
+    // sends message to other server
+    io.emit("message", server2messages);
+
+    // receive message from other server
     server1.on("message", (msg) => {
-      console.log("\nCHATSERVER2: " + msg);
-      rl.prompt();
+      io.emit("serverMessages", formatMessage("CHATSERVER2", msg));
     });
+  });
 
-    server1.on("disconnect", () => {
-      console.log("disconnected from server");
-    });
+  // connection timeout
+  server1.on("connect_timeout", (err) => {
+    if (err) {
+      // emit success connection
+      let msg = "Error connecting to server (connection timeout)";
+      io.emit("serverprocess", formatMessage("FAIL", msg));
+    }
+  });
 
-    rl.on("close", () => {
-      console.log("Have a great day!");
-      process.exit(0);
-    });
+  // connection error
+  server1.on("connect_error", (err) => {
+    if (err) {
+      // emit success connection
+      let msg = "Error connecting to server ";
+      io.emit("serverprocess", formatMessage("FAIL", msg));
+    }
+  });
 
-    server1.on("error", (err) => {
-      if (err) {
-        console.log("error connecting to server");
-      }
-    });
+  // message when disconnected from server
+  server1.on("disconnect", () => {
+    msg = "disconnected from server";
+    io.emit("serverprocess", formatMessage("FAIL", msg));
   });
 }
 

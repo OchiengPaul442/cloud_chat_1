@@ -7,6 +7,7 @@ const connectPort = document.getElementById("connect_port");
 const chatRooms = document.getElementById("chatrooms_");
 const addRoom = document.getElementById("addRoom");
 const addchatroommessage = document.querySelector(".add_room_message");
+const serverChatRoomForm = document.getElementById("serverChatRoomForm");
 
 // Get username and room from URL
 const { username, room, image } = Qs.parse(location.search, {
@@ -50,16 +51,49 @@ connectPort.addEventListener("submit", (e) => {
 
 // success message from server
 socket.on("success", (message) => {
-  // show notification modal for 3 seconds
-  const div = document.createElement("div");
-  div.innerHTML = `<div class="text-center alert alert-success alert-dismissible fade show" role="alert">
-                           ${message}                    
-                        </div>`;
-  document.querySelector(".conn_notif").appendChild(div);
-  setTimeout(
-    () => document.querySelector(".conn_notif").removeChild(div),
-    4000
-  );
+  // hide modal
+  $("#connect_to_server").modal("hide");
+  // show modal
+  $("#serverchatroom").modal("show");
+});
+
+socket.on("serverprocess", (message) => {
+  // show message
+  setInterval(() => {
+    if (message.username === "SUCCESS") {
+    document.querySelector(".loading_icon").style.display = "none";
+    document.querySelector(".CONN_NOTIF").innerHTML = `<div class="text-center alert alert-success alert-dismissible fade show" role="alert">` + message.text + `</div>`;
+    }else {
+      document.querySelector(".loading_icon").style.display = "none";
+      document.querySelector(".CONN_NOTIF").innerHTML = `<div class="text-center alert alert-danger alert-dismissible fade show" role="alert">` + message.text + `</div>`;
+    }
+  },1000);
+});
+
+// submit message to remote server
+serverChatRoomForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  // Get message text
+  let msg = e.target.elements.server_msg_server1.value;
+
+  msg = msg.trim();
+
+  if (!msg) {
+    return false;
+  }
+
+  // Emit message to server
+  socket.emit("serverChatMessage", msg);
+
+  // Clear input
+  e.target.elements.server_msg_server1.value = "";
+  e.target.elements.server_msg_server1.focus();
+});
+
+// Message from server
+socket.on("serverMessages", (message) => {
+  outputServerMessage(message);
 });
 
 // ***************************************************** //
@@ -261,6 +295,21 @@ function outputHistoryMessages(history) {
 
     document.querySelector(".chat-messages").appendChild(div);
   });
+}
+
+// display server messages to DOM
+function outputServerMessage(message) {
+  const div = document.createElement("div");
+  if (message.username === "Server1") {
+    div.innerHTML = `<div class="text-success">
+                      CLOUDCHAT: ${message.text}
+                    </div>`;
+  }else{
+  div.innerHTML = `<div class="text-danger">
+                      SERVER2: ${message.text}
+                    </div>`;
+  }
+  document.querySelector(".server_messages").appendChild(div);
 }
 
 // display image in profile

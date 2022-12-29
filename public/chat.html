@@ -107,7 +107,7 @@
                       <li class="dropdown-item">
                         <a type="button" class="btn btn-primary" data-bs-toggle="modal"
                           data-bs-target="#connect_to_server">
-                          connect to user
+                          connect to server
                         </a>
                       </li>
                     </ul>
@@ -172,11 +172,10 @@
         </div>
         <form id="connect_port">
           <div class="modal-body">
-            <div class="conn_notif"></div>
             <div class="input-group flex-nowrap">
               <span class="input-group-text" id="addon-wrapping">Port address:</span>
               <input type="text" id="port" name="port" class="form-control" placeholder="http://address:port"
-                aria-label="Username" aria-describedby="addon-wrapping">
+                aria-label="Username" aria-describedby="addon-wrapping" required>
             </div>
           </div>
           <div class="modal-footer">
@@ -188,6 +187,43 @@
     </div>
   </div>
   <!-- end of connect to server modal -->
+
+  <!-- server chat room -->
+  <div class="modal fade" id="serverchatroom" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="serverchatroomLabel" aria-hidden="true">
+    <div class="modal-dialog  modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="serverchatroomLabel">Chat Room For Server2:</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- spinners -->
+          <div class="loading_icon">
+            <div class="d-flex justify-content-center">
+              <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+          <!-- notifications -->
+          <div class="CONN_NOTIF"></div>
+          <!-- chat room -->
+          <div class="server_messages" style="height: 200px;border: black 2px;border-radius: 10px;overflow-y: auto;">
+          </div>
+          <!-- submit form -->
+          <form id="serverChatRoomForm" class="p-2">
+            <div class="input-group">
+              <input type="text" id="server_msg_server1" name="server_msg_server1" class="form-control"
+                placeholder="Type your message" required autocomplete="off">
+              <button class="btn btn-success text-white">Send</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- end server chat room -->
 
   <!-- notification Modal -->
   <div class="notification"></div>

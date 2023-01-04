@@ -100,9 +100,10 @@
      <h1>PREVIEW</h1>
 </strong>
 
-![Screenshot_20221219_013502](https://user-images.githubusercontent.com/97807374/208871280-8b61b16c-d5be-4855-98c9-a9266663ff80.png)
+![image](https://user-images.githubusercontent.com/97807374/210650987-50bc5a47-e8ec-4000-84d6-fe80e767bdd0.png)
 
-![image](https://user-images.githubusercontent.com/97807374/208873526-55758470-00ce-4ecf-8df8-4a37e3cfbecc.png)
+![image](https://user-images.githubusercontent.com/97807374/210651104-6886d525-58b9-4b47-baec-ce7e1a5996ca.png)
+
 
 ![image](https://user-images.githubusercontent.com/97807374/210648027-71b73ed7-a8f4-4f55-b477-27846d7c679b.png)
 

@@ -8,6 +8,8 @@ const chatRooms = document.getElementById("chatrooms_");
 const addRoom = document.getElementById("addRoom");
 const addchatroommessage = document.querySelector(".add_room_message");
 const serverChatRoomForm = document.getElementById("serverChatRoomForm");
+const editProfileForm = document.getElementById("editProfileForm");
+const editPasswordForm = document.getElementById("editPasswordForm");
 
 // Get username and room from URL
 const { username, room, image } = Qs.parse(location.search, {
@@ -20,9 +22,101 @@ const socket = io();
 socket.emit("joinRoom", { username, room });
 
 // Get room and users
-socket.on("roomUsers", ({ room, users, pic }) => {
+socket.on("roomUsers", ({ room, users, data }) => {
   outputRoomName(room);
-  outputUsers(users, pic);
+  outputUsers(users, data);
+});
+
+// ***************************************************** //
+// *******************  edit profile   ***************** //
+// ***************************************************** //
+editProfileForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  // Get username and email
+  let username = e.target.elements.username_edit.value;
+  let email = e.target.elements.email_edit.value;
+
+  username = username.trim();
+  email = email.trim();
+
+  if (!username || !email) {
+    return false;
+  }
+
+  // Emit username and email to server
+  socket.emit("editProfile", { username, email });
+});
+
+editPasswordForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  // Get password and confirm password
+  let old_password = e.target.elements.old_pwd_edit.value;
+  let new_password = e.target.elements.new_pwd_edit.value;
+
+  old_password = old_password.trim();
+  new_password = new_password.trim();
+
+  if (!old_password || !new_password) {
+    return false;
+  }
+
+  // Emit password and confirm password to server
+  socket.emit("editPassword", { old_password, new_password });
+
+  // Clear input
+  e.target.elements.old_pwd_edit.value = "";
+  e.target.elements.new_pwd_edit.value = "";
+  e.target.elements.old_pwd_edit.focus();
+});
+
+// show notification when user successfully or unsuccessfully edits password
+socket.on("passwordError", (message) => {
+  // show message
+  if (message.username === "Success") {
+    document.querySelector(".notification_on_pwd").innerHTML =
+      `<div class="text-center alert alert-success alert-dismissible fade show" role="alert">` +
+      message.text +
+      `</div>`;
+  } else {
+    document.querySelector(".notification_on_pwd").innerHTML =
+      `<div class="text-center alert alert-danger alert-dismissible fade show" role="alert">` +
+      message.text +
+      `</div>`;
+  }
+  // hide message
+  setTimeout(() => {
+    $(".notification_on_pwd").slideUp(200);
+  }, 3000);
+});
+
+// display profile details
+socket.on("profileDetails", (details) => {
+  // display profile details
+  details.forEach((detail) => {
+    document.getElementById("username_edit").value = detail.user_name;
+    document.getElementById("email_edit").value = detail.user_email;
+  });
+});
+
+// redirect to chatroom
+socket.on("redirect", (url) => {
+  window.location = url;
+});
+
+$("#editProfileLabel").text("Edit Profile Form");
+
+$("#password_change").on("click", () => {
+  $("#editProfileForm").hide(200);
+  $("#editPasswordForm").show(200);
+  $("#editProfileLabel").text("Change Password Form");
+});
+
+$("#back_to_btn").on("click", () => {
+  $("#editProfileForm").show(200);
+  $("#editPasswordForm").hide(200);
+  $("#editProfileLabel").text("Edit Profile Form");
 });
 
 // ***************************************************** //
@@ -49,25 +143,33 @@ connectPort.addEventListener("submit", (e) => {
   e.target.elements.port.focus();
 });
 
-// success message from server
-socket.on("success", (message) => {
+// show serverchatroom modal when user successfully enters port number
+socket.on("success", (details) => {
   // hide modal
+  // show for that particular user
   $("#connect_to_server").modal("hide");
   // show modal
   $("#serverchatroom").modal("show");
 });
 
+// display notification when user successfully or unsuccessfully connects to remote server
 socket.on("serverprocess", (message) => {
   // show message
   setInterval(() => {
     if (message.username === "SUCCESS") {
-    document.querySelector(".loading_icon").style.display = "none";
-    document.querySelector(".CONN_NOTIF").innerHTML = `<div class="text-center alert alert-success alert-dismissible fade show" role="alert">` + message.text + `</div>`;
-    }else {
       document.querySelector(".loading_icon").style.display = "none";
-      document.querySelector(".CONN_NOTIF").innerHTML = `<div class="text-center alert alert-danger alert-dismissible fade show" role="alert">` + message.text + `</div>`;
+      document.querySelector(".CONN_NOTIF").innerHTML =
+        `<div class="text-center alert alert-success alert-dismissible fade show" role="alert">` +
+        message.text +
+        `</div>`;
+    } else {
+      document.querySelector(".loading_icon").style.display = "none";
+      document.querySelector(".CONN_NOTIF").innerHTML =
+        `<div class="text-center alert alert-danger alert-dismissible fade show" role="alert">` +
+        message.text +
+        `</div>`;
     }
-  },1000);
+  }, 1000);
 });
 
 // submit message to remote server
@@ -99,7 +201,7 @@ socket.on("serverMessages", (message) => {
 // ***************************************************** //
 // *******************  CHAT MESSAGES  ***************** //
 // ***************************************************** //
-// Message submit
+// Message submit to server
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
 
@@ -210,11 +312,11 @@ function outputRoomName(room) {
 }
 
 // Add users to DOM
-function outputUsers(users, pic) {
+function outputUsers(users, data) {
   userList.innerHTML = "";
   current_user.innerHTML = username;
 
-  pic.forEach((pic) => {
+  data.forEach((pic) => {
     users.forEach((user) => {
       const li = document.createElement("li");
       if (pic.user_name === user.username) {
@@ -304,8 +406,8 @@ function outputServerMessage(message) {
     div.innerHTML = `<div class="text-success">
                       CLOUDCHAT: ${message.text}
                     </div>`;
-  }else{
-  div.innerHTML = `<div class="text-danger">
+  } else {
+    div.innerHTML = `<div class="text-danger">
                       SERVER2: ${message.text}
                     </div>`;
   }

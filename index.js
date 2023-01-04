@@ -13,6 +13,22 @@ const io = socketio(server, {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
     credentials: true,
+    timeout: 5000,
+    cert: "cert.pem",
+    key: "key.pem",
+
+    // allow headers
+    allowedHeaders: ["my-custom-header"],
+    // exposed headers
+    exposedHeaders: ["my-custom-header"],
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    withCredentials: true,
+
+    // Set to true if you want to pass the message to the next middleware
+    // if the origin is not allowed
+    preflightContinue: false,
   },
 });
 const csp = require("content-security-policy");
@@ -37,7 +53,7 @@ const rateLimit = require("express-rate-limit"); // prevent brute force attacks
 // Limit requests from the same IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 200, // limit each IP to 200 requests per windowMs
 });
 
 //  apply to all requests
@@ -337,6 +353,8 @@ io.on("connection", (socket) => {
     // JOIN ROOM
     // ********************************************************************************* //
     socket.on("joinRoom", ({ username, room }) => {
+      let stats = 1;
+
       const user = newUser(socket.id, username, room);
 
       socket.join(user.room);
@@ -346,7 +364,18 @@ io.on("connection", (socket) => {
         formatMessage("CloudChat", "Messages are limited to this room! ")
       );
 
-      let stats = 1;
+      // select all users in database
+      let all_Users = `SELECT * FROM users_details`;
+      // execute the prepared statement
+      db.query(all_Users, (err, result) => {
+        if (err) throw err;
+        // Current active users and room name
+        io.to(user.room).emit("roomUsers", {
+          room: user.room,
+          users: getIndividualRoomUsers(user.room),
+          data: result,
+        });
+      });
 
       // Set up the prepared statement and the parameters to prevent SQL injection
       let statusUpdate = `UPDATE users_details SET user_status = ? WHERE user_name = ?`;
@@ -355,6 +384,97 @@ io.on("connection", (socket) => {
       // execute the prepared statement
       db.query(statusUpdate, params, (err, result) => {
         if (err) throw err;
+      });
+
+      // ********************************************************************************* //
+      // edit profile details
+      // ********************************************************************************* //
+      socket.on("editProfile", (data) => {
+        // Set up the prepared statement and the parameters to prevent SQL injection
+        let editProfile = `UPDATE users_details SET user_name = ?, user_email = ? WHERE user_name = ? or user_email = ?`;
+        let params = [data.username, data.email, username, data.email];
+
+        // upadate user details in messages table
+        // Set up the prepared statement and the parameters to prevent SQL injection
+        let updateMessages = `UPDATE messages SET user_id = ? WHERE user_id = ?`;
+        let params_1 = [data.username, username];
+
+        db.query(updateMessages, params_1, (err, result) => {
+          if (err) throw err;
+        });
+
+        // execute the prepared statement
+        db.query(editProfile, params, (err, result) => {
+          if (err) throw err;
+          // update user
+          user.username = data.username;
+          user.email = data.email;
+
+          // get all new details from database
+          // Set up the prepared statement and the parameters to prevent SQL injection
+          let sql = `SELECT * FROM users_details WHERE user_name = ? or user_email = ?`;
+          let params_1 = [data.username, data.email];
+
+          // execute the prepared statement
+          db.query(sql, params_1, (err, result) => {
+            // redirect to chat page with new details
+            redirect = `/chat?username=${data.username}&room=${user.room}&image=${result[0].profile_img}`;
+            socket.emit("redirect", redirect);
+          });
+        });
+      });
+
+      // edit password
+      socket.on("editPassword", (data) => {
+        // Set up the prepared statement and the parameters to prevent SQL injection
+        let checkPassword = `SELECT * FROM users_details WHERE user_name = ?`;
+        let params = [username];
+
+        // execute the prepared statement
+        db.query(checkPassword, params, (err, result) => {
+          if (err) throw err;
+          result.forEach((row) => {
+            let hashedPassword = row.user_password;
+            let match = bcrypt.compareSync(data.old_password, hashedPassword);
+            if (match) {
+              // hash password
+              let hashPassword = bcrypt.hashSync(data.new_password, 10);
+              // Set up the prepared statement and the parameters to prevent SQL injection
+              let editPassword = `UPDATE users_details SET user_password = ? WHERE user_name = ?`;
+              let params = [hashPassword, username];
+              // execute the prepared statement
+              db.query(editPassword, params, (err, result) => {
+                if (err) throw err;
+                // redirect to chat page with new details
+                socket.emit(
+                  "passwordError",
+                  formatMessage("Success", "Password changed successfully! ")
+                );
+                // redirect to chat page with new details
+                setTimeout(() => {
+                  redirect = `/chat?username=${username}&room=${user.room}&image=${row.profile_img}`;
+                  socket.emit("redirect", redirect);
+                }, 2000);
+              });
+            } else {
+              socket.emit(
+                "passwordError",
+                formatMessage("Error", "Incorrect password! ")
+              );
+            }
+          });
+        });
+      });
+
+      // display profile details to user
+      // Set up the prepared statement and the parameters to prevent SQL injection
+      let profile = `SELECT * FROM users_details WHERE user_name = ?`;
+      let preofileDetails = [username];
+
+      // execute the prepared statement
+      db.query(profile, preofileDetails, (err, result) => {
+        if (err) throw err;
+        socket.emit("profileDetails", result);
       });
 
       // broadcast chat history from database
@@ -383,21 +503,6 @@ io.on("connection", (socket) => {
             `${user.username} has joined the room`
           )
         );
-
-      // select al users in database
-      // Set up the prepared statement and the parameters to prevent SQL injection
-      let sql_ = `SELECT * FROM users_details`;
-
-      // execute the prepared statement
-      db.query(sql_, (err, result) => {
-        if (err) throw err;
-        // Current active users and room name
-        io.to(user.room).emit("roomUsers", {
-          room: user.room,
-          users: getIndividualRoomUsers(user.room),
-          pic: result,
-        });
-      });
     });
 
     // ********************************************************************************* //
@@ -457,10 +562,17 @@ io.on("connection", (socket) => {
           formatMessage("cloudchat_left", `${user.username} has left the room`)
         );
 
-        // Current active users and room name
-        io.to(user.room).emit("roomUsers", {
-          room: user.room,
-          users: getIndividualRoomUsers(user.room),
+        // select all users in database
+        let sql_ = `SELECT * FROM users_details`;
+        // execute the prepared statement
+        db.query(sql_, (err, result) => {
+          if (err) throw err;
+          // Current active users and room name
+          io.to(user.room).emit("roomUsers", {
+            room: user.room,
+            users: getIndividualRoomUsers(user.room),
+            pic: result,
+          });
         });
       }
     });

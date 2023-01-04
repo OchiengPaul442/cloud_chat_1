@@ -25,46 +25,17 @@
   <!-- main content -->
   <main class="content">
     <div class="container p-0">
-
-      <div class="d-flex justify-content-between">
-        <div class="d-inline-flex py-2">
-          <img src="./imgs/Logo.png" width="70px" alt="Logo">
-          <h1 class="fw-bolder text-white ps-2" style="margin-top: 23px;">Cloud Chat</h1>
-        </div>
-        <div style="position: relative;top: 25px;">
-          <div class="d-flex align-items-center">
-            <div class="dropdown">
-              <button class="btn bg-none dropdown-toggle" style="outline: none;border:none;" type="button"
-                id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                <img id="profile_image_user" class="rounded-circle" width="40px" height="40px" alt="Profile">
-              </button>
-              <ul class="dropdown-menu text-center" aria-labelledby="dropdownMenuButton1">
-                <li>
-                  <a style="background: antiquewhite;" class="dropdown-item text-capitalize" id="current_user">
-                  </a>
-                  <a style="background: antiquewhite;" class="dropdown-item text-capitalize" id="current_users">
-                  </a>
-
-                </li>
-                <!-- logout form -->
-                <li>
-                  <a href="#" type="button" class="btn" data-bs-toggle="modal" data-bs-target="#exampleModal">Logout</a>
-                </li>
-                <!-- end of logout form -->
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="card">
         <div class="row g-0">
           <div class="col-12 col-lg-5 col-xl-3 border-end relative" style="background: antiquewhite;">
-            <!-- User accounts header -->
+
             <div>
-              <h3 class="text-start p-2 fw-bolder">Activity</h3>
+              <div class="d-inline-flex p-2">
+                <img src="./imgs/Logo.png" width="40px" alt="Logo">
+                <h3 class="fw-bolder ps-2">Cloud Chat</h3>
+              </div>
             </div>
-            <!-- end user accounts header -->
+
             <hr>
             <!-- search section -->
             <div class="px-4 d-none d-md-block">
@@ -77,13 +48,15 @@
               </div>
             </div>
             <!-- end of search section -->
+
             <div>
               <h3 class="text-start p-2 fw-bolder">Users in Room</h3>
             </div>
+            <hr>
+
             <!-- List of online users  -->
             <ul style="margin: 0; padding: 0;overflow: auto;" id="users"></ul>
             <!-- end List of online users  -->
-            <hr>
           </div>
 
           <div class="col-12 col-lg-7 col-xl-9">
@@ -93,24 +66,41 @@
               <div class="d-flex align-items-center py-1">
                 <div class="flex-grow-1 pl-3">
                   <strong>
-                    <h2><span id="room-name"></span> Chat Room</h2>
+                    <h2><span class="text-capitalize" id="room-name"></span> Chat Room</h2>
                   </strong>
                 </div>
-                <div>
-                  <div class="dropdown">
-                    <button class="btn" style="outline: none;border:none;" href="#" role="button"
-                      data-bs-toggle="dropdown" aria-expanded="false">
-                      <img src="./imgs/menu-svgrepo-com.svg" width="30px" alt="">
-                    </button>
-
-                    <ul class="dropdown-menu text-center">
-                      <li class="dropdown-item">
-                        <a type="button" class="btn btn-primary" data-bs-toggle="modal"
-                          data-bs-target="#connect_to_server">
-                          connect to server
-                        </a>
-                      </li>
-                    </ul>
+                <!-- profile icon -->
+                <div style="position: relative;">
+                  <div class="d-flex align-items-center">
+                    <div class="dropdown">
+                      <button class="btn bg-none dropdown-toggle" style="outline: none;border:none;" type="button"
+                        id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img id="profile_image_user" class="rounded-circle" width="40px" height="40px" alt="Profile">
+                      </button>
+                      <ul class="dropdown-menu text-center" aria-labelledby="dropdownMenuButton1">
+                        <li style="background: antiquewhite;" class="dropdown-item">
+                          <a class="text-capitalize" id="current_user">
+                          </a>
+                        </li>
+                        <li class="dropdown-item">
+                          <a href="#" class="btn" data-bs-toggle="modal" data-bs-target="#editProfile">Edit Profile</a>
+                        </li>
+                        <!-- connect to server -->
+                        <li class="dropdown-item">
+                          <a type="button" class="btn btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#connect_to_server">
+                            connect to server
+                          </a>
+                        </li>
+                        <!-- end of connect to server -->
+                        <!-- logout form -->
+                        <li class="dropdown-item">
+                          <a href="#" type="button" class="btn" data-bs-toggle="modal"
+                            data-bs-target="#exampleModal">Logout</a>
+                        </li>
+                        <!-- end of logout form -->
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -118,8 +108,7 @@
             <!-- End Header section -->
             <!-- chat content -->
             <div class="position-relative">
-              <div class="chat-messages">
-              </div>
+              <div class="chat-messages"></div>
             </div>
             <!-- end of chat content -->
 
@@ -212,11 +201,59 @@
           <div class="server_messages" style="height: 200px;border: black 2px;border-radius: 10px;overflow-y: auto;">
           </div>
           <!-- submit form -->
-          <form id="serverChatRoomForm" class="p-2">
-            <div class="input-group">
+          <form id="serverChatRoomForm">
+            <div class="modal-footer input-group">
               <input type="text" id="server_msg_server1" name="server_msg_server1" class="form-control"
                 placeholder="Type your message" required autocomplete="off">
               <button class="btn btn-success text-white">Send</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- end server chat room -->
+
+  <!-- server chat room -->
+  <div class="modal fade" id="editProfile" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="editProfileLabel" aria-hidden="true">
+    <div class="modal-dialog  modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="editProfileLabel"></h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editProfileForm">
+            <div class="mb-3">
+              <label for="username_edit" class="form-label">User name</label>
+              <input type="text" class="form-control" id="username_edit" required>
+            </div>
+            <div class="mb-3">
+              <label for="email_edit" class="form-label">Email address</label>
+              <input type="email" class="form-control" id="email_edit" required>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+              <button type="button" class="btn btn-secondary" id="password_change">change Password</button>
+              <div>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">No</button>
+                <button type="submit" class="btn btn-success">Update</button>
+              </div>
+            </div>
+          </form>
+          <form id="editPasswordForm" style="display: none;">
+            <div class="notification_on_pwd pb-2"></div>
+            <div class="mb-3">
+              <label for="old_pwd_edit" class="form-label">Enter Old Password</label>
+              <input type="password" class="form-control" id="old_pwd_edit" required>
+            </div>
+            <div class="mb-3">
+              <label for="new_pwd_edit" class="form-label">Enter New Password</label>
+              <input type="password" class="form-control" id="new_pwd_edit" required>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="back_to_btn">Back</button>
+              <button type="submit" class="btn btn-success">change</button>
             </div>
           </form>
         </div>
